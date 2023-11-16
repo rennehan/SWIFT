@@ -124,6 +124,32 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pj->density.rot_v[1] += facj * curlvr[1];
   pj->density.rot_v[2] += facj * curlvr[2];
 
+#ifdef WITH_MHD
+  /* Recall: B_ours is B_real / sqrt(4 * pi) */
+
+  /* Compute dB dot r */
+  dB[0] = pi->B[0] - pj->B[0];
+  dB[1] = pi->B[1] - pj->B[1];
+  dB[2] = pi->B[2] - pj->B[2];
+  const float dBdr = dB[0] * dx[0] + dB[1] * dx[1] + dB[2] * dx[2];
+
+  pi->density.div_B -= faci * dBdr;
+  pj->density.div_B -= facj * dBdr;
+
+  /* Compute dB cross r */
+  curlBr[0] = dB[1] * dx[2] - dB[2] * dx[1];
+  curlBr[1] = dB[2] * dx[0] - dB[0] * dx[2];
+  curlBr[2] = dB[0] * dx[1] - dB[1] * dx[0];
+
+  pi->density.rot_B[0] += faci * curlBr[0];
+  pi->density.rot_B[1] += faci * curlBr[1];
+  pi->density.rot_B[2] += faci * curlBr[2];
+
+  pj->density.rot_B[0] += facj * curlBr[0];
+  pj->density.rot_B[1] += facj * curlBr[1];
+  pj->density.rot_B[2] += facj * curlBr[2];
+#endif
+
 #ifdef DEBUG_INTERACTIONS_SPH
   /* Update ngb counters */
   if (pi->num_ngb_density < MAX_NUM_OF_NEIGHBOURS)
@@ -200,6 +226,26 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   pi->density.rot_v[0] += fac * curlvr[0];
   pi->density.rot_v[1] += fac * curlvr[1];
   pi->density.rot_v[2] += fac * curlvr[2];
+
+#ifdef WITH_MHD
+  /* Recall: B_ours is B_real / sqrt(4 * pi) */
+
+  /* Compute dB dot r */
+  dB[0] = pi->B[0] - pj->B[0];
+  dB[1] = pi->B[1] - pj->B[1];
+  dB[2] = pi->B[2] - pj->B[2];
+  const float dBdr = dB[0] * dx[0] + dB[1] * dx[1] + dB[2] * dx[2];
+  pi->density.div_B -= fac * dBdr;
+
+  /* Compute dB cross r */
+  curlBr[0] = dB[1] * dx[2] - dB[2] * dx[1];
+  curlBr[1] = dB[2] * dx[0] - dB[0] * dx[2];
+  curlBr[2] = dB[0] * dx[1] - dB[1] * dx[0];
+
+  pi->density.rot_B[0] += fac * curlBr[0];
+  pi->density.rot_B[1] += fac * curlBr[1];
+  pi->density.rot_B[2] += fac * curlBr[2];
+#endif
 
 #ifdef DEBUG_INTERACTIONS_SPH
   /* Update ngb counters */

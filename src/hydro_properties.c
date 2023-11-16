@@ -165,6 +165,10 @@ void hydro_props_init(struct hydro_props *p,
   /* Same for the thermal diffusion parameters */
   diffusion_init(params, us, phys_const, &(p->diffusion));
 
+#ifdef WITH_MHD
+  mhd_init(params, us, phys_const, &(p->mhd));
+#endif
+
   /* Compute the initial energy (Note the temp. read is in internal units)
    */
   /* u_init = k_B T_init / (mu m_p (gamma - 1)) */
@@ -271,6 +275,10 @@ void hydro_props_print(const struct hydro_props *p) {
   /* Same for the diffusion */
   diffusion_print(&(p->diffusion));
 
+#ifdef WITH_MHD
+  mhd_print(&(p->mhd));
+#endif
+
   /* Same for MHD */
   message("MHD scheme: %s.", MHD_IMPLEMENTATION);
 
@@ -337,6 +345,10 @@ void hydro_props_print_snapshot(hid_t h_grpsph, const struct hydro_props *p) {
 
   /* Same for the diffusion */
   diffusion_print_snapshot(h_grpsph, &(p->diffusion));
+
+#ifdef WITH_MHD
+  mhd_print_snapshot(h_grpsph, &(p->mhd));
+#endif
 }
 #endif
 
@@ -381,6 +393,10 @@ void hydro_props_init_no_hydro(struct hydro_props *p) {
 
   /* Same for the diffusion */
   diffusion_init_no_hydro(&(p->diffusion));
+
+#ifdef WITH_MHD
+  mhd_init_no_hydro(&(p->mhd));
+#endif
 }
 
 /**

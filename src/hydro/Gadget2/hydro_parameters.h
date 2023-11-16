@@ -63,6 +63,18 @@
 
 /* Structs that store the relevant variables */
 
+#ifdef WITH_MHD
+struct mhd_global_data {
+  float artificial_dissipation_constant;
+  float artificial_dissipation_minimum;
+  float artificial_dissipation_source;
+  float artificial_dissipation_timescale;
+  int with_div_B_cleaning;
+  float div_B_parabolic_sigma;
+  float div_B_over_clean_factor;
+}
+#endif
+
 /*! Artificial viscosity parameters */
 struct viscosity_global_data {
   /*! For the fixed, simple case. Also used to set the initial AV
@@ -79,6 +91,142 @@ struct diffusion_global_data {};
 struct swift_params;
 struct phys_const;
 struct unit_system;
+
+#ifdef WITH_MHD
+/**
+ * @brief Initialises the MHD parameters in the struct from
+ *        the parameter file, or sets them to defaults.
+ *
+ * @param params: the pointer to the swift_params file
+ * @param us: pointer to the internal unit system
+ * @param phys_const: pointer to the physical constants system
+ * @param mhd: pointer to the mhd_global_data struct to be filled.
+ **/
+static INLINE void viscosity_init(struct swift_params* params,
+                                  const struct unit_system* us,
+                                  const struct phys_const* phys_const,
+                                  struct mhd_global_data* mhd) {
+
+  /* Read the MHD parameters from the file, if they exist,
+   * otherwise set them to the defaults defined above. */
+  mhd->artificial_dissipation_constant = parser_get_param_float(
+    params, "SPH:artificial_dissipation_constant"
+  );
+  mhd->artificial_dissipation_minimum = parser_get_param_float(
+    params, "SPH:artificial_dissipation_minimum"
+  );
+  mhd->artificial_dissipation_source = parser_get_param_float(
+    params, "SPH:artificial_dissipation_source"
+  );
+  mhd->artificial_dissipation_timescale = parser_get_param_float(
+    params, "SPH:artificial_dissipation_timescale"
+  );
+
+  mhd->with_div_B_cleaning = parser_get_opt_param_int(
+    params, "SPH:with_div_B_cleaning"
+  );
+  mhd->div_B_parabolic_sigma = parser_get_param_float(
+    params, "SPH:div_B_parabolic_sigma"
+  );
+  mhd->div_B_over_clean_factor = parser_get_opt_param_float(
+    params, "SPH:div_B_over_clean_factor", 1.f
+  );
+  if (mhd->div_B_over_clean_factor < 1.f) {
+    error("Cannot have div_B_over_clean_factor < 1.");
+  }
+}
+
+/**
+ * @brief Initialises an MHD struct to sensible numbers for mocking
+ *        purposes.
+ *
+ * @param mhd: pointer to the mhd_global_data struct to be filled.
+ **/
+static INLINE void mhd_init_no_hydro(
+    struct mhd_global_data* mhd) {
+  /* TODO: Change these */
+  mhd->artificial_dissipation_constant = 0.f;
+  mhd->artificial_dissipation_minimum = 0.f;
+  mhd->artificial_dissipation_source = 0.f;
+  mhd->artificial_dissipation_timescale = 0.f;
+  mhd->with_div_B_cleaning = 0;
+  mhd->div_B_parabolic_sigma = 0.f;
+  mhd->div_B_over_clean_factor = 0.f;
+}
+
+/**
+ * @brief Prints out the MHD parameters at the start of a run.
+ *
+ * @param viscosity: pointer to the viscosity_global_data struct found in
+ *                   hydro_properties
+ **/
+static INLINE void mhd_print(
+    const struct mhd_global_data* mhd) {
+  message("MHD artificial_dissipation_constant = %g",
+          mhd->artificial_dissipation_constant);
+  message("MHD artificial_dissipation_minimum = %g",
+          mhd->artificial_dissipation_minimum);
+  message("MHD artificial_dissipation_source = %g",
+          mhd->artificial_dissipation_source);
+  message("MHD artificial_dissipation_timescale = %g",
+          mhd->artificial_dissipation_timescale);
+
+  if (mhd->div_B_cleaning) {
+    message("MHD is running with divB cleaning ON.");
+    message("MHD div_B_parabolic_sigma = %g",
+            mhd->div_B_parabolic_sigma);
+    message("MHD div_B_over_clean_factor = %g",
+            mhd->div_B_over_clean_factor);
+  } else {
+    message("MHD is running with divB cleaning OFF.");
+  }
+}
+
+#if defined(HAVE_HDF5)
+/**
+ * @brief Prints the MHD information to the snapshot when writing.
+ *
+ * @param h_grpsph: the SPH group in the ICs to write attributes to.
+ * @param mhd: pointer to the mhd_global_data struct.
+ **/
+static INLINE void mhd_print_snapshot(
+    hid_t h_grpsph, const struct mhd_global_data* mhd) {
+
+  io_write_attribute_f(
+    h_grpsph, "Artificial dissipation constant", 
+    mhd->artificial_dissipation_constant
+  );
+  io_write_attribute_f(
+    h_grpsph, "Artificial dissipation minimum", 
+    mhd->artificial_dissipation_minimum
+  );
+  io_write_attribute_f(
+    h_grpsph, "Artificial dissipation source", 
+    mhd->artificial_dissipation_source
+  );
+  io_write_attribute_f(
+    h_grpsph, "Artificial dissipation timescale", 
+    mhd->artificial_dissipation_timescale
+  );
+
+  io_write_attribute_i(
+    h_grpsph, "divB cleaning turned on", 
+    mhd->with_div_B_cleaning
+  );
+
+  if (mhd->with_div_B_cleaning) {
+    io_write_attribute_f(
+      h_grpsph, "divB parabolic sigma", 
+      mhd->div_B_parabolic_sigma
+    );
+    io_write_attribute_f(
+      h_grpsph, "divB over-cleaning factor", 
+      mhd->div_B_over_clean_factor
+    );
+  }
+}
+#endif
+#endif
 
 /* Viscosity */
 
