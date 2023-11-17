@@ -402,6 +402,33 @@ double hydro_kick_integrand(double a, void *param) {
 }
 
 /**
+ * @brief Computes \f$ dt / a^3 \f$ for the current cosmology.
+ *
+ * @param a The scale-factor of interest.
+ * @param param The current #cosmology.
+ */
+double mhd_kick_integrand(double a, void *param) {
+
+  const struct cosmology *c = (const struct cosmology *)param;
+  const double Omega_nu = cosmology_get_neutrino_density(c, a);
+  const double Omega_r = c->Omega_r + Omega_nu;
+  const double Omega_m = c->Omega_cdm + c->Omega_b;
+  const double Omega_k = c->Omega_k;
+  const double Omega_l = c->Omega_lambda;
+  const double w_0 = c->w_0;
+  const double w_a = c->w_a;
+  const double H0 = c->H0;
+
+  const double a_inv = 1. / a;
+  const double E_z = E(Omega_r, Omega_m, Omega_k, Omega_l, w_0, w_a, a);
+  const double H = H0 * E_z;
+
+  /* Note: we can't use the pre-defined pow_gamma_xxx() function as
+     as we need double precision accuracy for the GSL routine. */
+  return (1. / H) * pow(a_inv, 3.);
+}
+
+/**
  * @brief Computes \f$a dt\f$ for the current cosmology.
  *
  * @param a The scale-factor of interest.
@@ -654,6 +681,10 @@ void cosmology_init_tables(struct cosmology *c) {
                      SWIFT_STRUCT_ALIGNMENT,
                      cosmology_table_length * sizeof(double)) != 0)
     error("Failed to allocate cosmology interpolation table");
+  if (swift_memalign("cosmo.table", (void **)&c->mhd_kick_fac_interp_table,
+                     SWIFT_STRUCT_ALIGNMENT,
+                     cosmology_table_length * sizeof(double)) != 0)
+    error("Failed to allocate cosmology interpolation table");
   if (swift_memalign("cosmo.table", (void **)&c->hydro_kick_corr_interp_table,
                      SWIFT_STRUCT_ALIGNMENT,
                      cosmology_table_length * sizeof(double)) != 0)
@@ -717,6 +748,16 @@ void cosmology_init_tables(struct cosmology *c) {
 
     /* Store result */
     c->hydro_kick_fac_interp_table[i] = result;
+  }
+
+  /* Integrate the kick factor \int_{a_begin}^{a_table[i]} dt/a^(3(g-1)+1) */
+  F.function = &mhd_kick_integrand;
+  for (int i = 0; i < cosmology_table_length; i++) {
+    gsl_integration_qag(&F, a_begin, a_table[i], 0, 1.0e-10, GSL_workspace_size,
+                        GSL_INTEG_GAUSS61, space, &result, &abserr);
+
+    /* Store result */
+    c->mhd_kick_fac_interp_table[i] = result;
   }
 
   /* Integrate the kick correction factor \int_{a_begin}^{a_table[i]} a dt */
@@ -1028,6 +1069,7 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   c->drift_fac_interp_table = NULL;
   c->grav_kick_fac_interp_table = NULL;
   c->hydro_kick_fac_interp_table = NULL;
+  c->mhd_kick_fac_interp_table = NULL;
   c->time_interp_table = NULL;
   c->time_interp_table_offset = 0.;
   cosmology_init_tables(c);
@@ -1120,6 +1162,7 @@ void cosmology_init_no_cosmo(struct cosmology *c) {
   c->drift_fac_interp_table = NULL;
   c->grav_kick_fac_interp_table = NULL;
   c->hydro_kick_fac_interp_table = NULL;
+  c->mhd_kick_fac_interp_table = NULL;
   c->hydro_kick_corr_interp_table = NULL;
   c->time_interp_table = NULL;
   c->neutrino_density_early_table = NULL;
@@ -1213,6 +1256,35 @@ double cosmology_get_hydro_kick_factor(const struct cosmology *c,
   const double int_start = interp_table(c->hydro_kick_fac_interp_table, a_start,
                                         c->log_a_begin, c->log_a_end);
   const double int_end = interp_table(c->hydro_kick_fac_interp_table, a_end,
+                                      c->log_a_begin, c->log_a_end);
+
+  return int_end - int_start;
+}
+
+/**
+ * @brief Computes the cosmology factor that enters the MHD kick operator.
+ *
+ * Computes \f$ \int_{a_start}^{a_end} dt/a^3 \f$ using the
+ * interpolation table.
+ *
+ * @param c The current #cosmology.
+ * @param ti_start the (integer) time of the start of the drift.
+ * @param ti_end the (integer) time of the end of the drift.
+ */
+double cosmology_get_mhd_kick_factor(const struct cosmology *c,
+                                     const integertime_t ti_start,
+                                     const integertime_t ti_end) {
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (ti_end < ti_start) error("ti_end must be >= ti_start");
+#endif
+
+  const double a_start = c->log_a_begin + ti_start * c->time_base;
+  const double a_end = c->log_a_begin + ti_end * c->time_base;
+
+  const double int_start = interp_table(c->mhd_kick_fac_interp_table, a_start,
+                                        c->log_a_begin, c->log_a_end);
+  const double int_end = interp_table(c->mhd_kick_fac_interp_table, a_end,
                                       c->log_a_begin, c->log_a_end);
 
   return int_end - int_start;
@@ -1511,6 +1583,7 @@ void cosmology_clean(struct cosmology *c) {
   swift_free("cosmo.table", c->drift_fac_interp_table);
   swift_free("cosmo.table", c->grav_kick_fac_interp_table);
   swift_free("cosmo.table", c->hydro_kick_fac_interp_table);
+  swift_free("cosmo.table", c->mhd_kick_interp_table);
   swift_free("cosmo.table", c->hydro_kick_corr_interp_table);
   swift_free("cosmo.table", c->time_interp_table);
   swift_free("cosmo.table", c->scale_factor_interp_table);

@@ -104,7 +104,7 @@ INLINE static void convert_part_vel(const struct engine* e,
   const integertime_t ti_end = get_integer_time_end(ti_current, p->time_bin);
 
   /* Get time-step since the last kick */
-  float dt_kick_grav, dt_kick_hydro;
+  float dt_kick_grav, dt_kick_hydro, dt_kick_mhd;
   if (with_cosmology) {
     dt_kick_grav = cosmology_get_grav_kick_factor(cosmo, ti_beg, ti_current);
     dt_kick_grav -=
@@ -112,9 +112,13 @@ INLINE static void convert_part_vel(const struct engine* e,
     dt_kick_hydro = cosmology_get_hydro_kick_factor(cosmo, ti_beg, ti_current);
     dt_kick_hydro -=
         cosmology_get_hydro_kick_factor(cosmo, ti_beg, (ti_beg + ti_end) / 2);
+    dt_kick_mhd = cosmology_get_mhd_kick_factor(cosmo, ti_beg, ti_current);
+    dt_kick_mhd -=
+        cosmology_get_mhd_kick_factor(cosmo, ti_beg, (ti_beg + ti_end) / 2);
   } else {
     dt_kick_grav = (ti_current - ((ti_beg + ti_end) / 2)) * time_base;
     dt_kick_hydro = (ti_current - ((ti_beg + ti_end) / 2)) * time_base;
+    dt_kick_mhd = (ti_current - ((ti_beg + ti_end) / 2)) * time_base;
   }
 
   /* Extrapolate the velocites to the current time (hydro term)*/
@@ -140,6 +144,10 @@ INLINE static void convert_part_vel(const struct engine* e,
   ret[0] *= cosmo->a_inv;
   ret[1] *= cosmo->a_inv;
   ret[2] *= cosmo->a_inv;
+
+#ifdef WITH_MHD
+
+#endif
 }
 
 INLINE static void convert_part_potential(const struct engine* e,

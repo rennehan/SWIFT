@@ -171,15 +171,18 @@ void runner_do_kick1(struct runner *r, struct cell *c, const int timer) {
             ti_begin, ti_end, time_base, with_cosmology, cosmo);
         const double dt_kick_hydro = kick_get_hydro_kick_dt(
             ti_begin, ti_end, time_base, with_cosmology, cosmo);
+        const double dt_kick_mhd = kick_get_mhd_kick_dt(
+            ti_begin, ti_end, time_base, with_cosmology, cosmo);
         const double dt_kick_therm = kick_get_therm_kick_dt(
             ti_begin, ti_end, time_base, with_cosmology, cosmo);
         const double dt_kick_corr = kick_get_corr_kick_dt(
             ti_begin, ti_end, time_base, with_cosmology, cosmo);
 
         /* Do the kick */
-        kick_part(p, xp, dt_kick_hydro, dt_kick_grav, dt_kick_mesh_grav,
-                  dt_kick_therm, dt_kick_corr, cosmo, hydro_props,
-                  entropy_floor, ti_begin, ti_end, ti_begin_mesh, ti_end_mesh);
+        kick_part(p, xp, dt_kick_hydro, dt_kick_mhd, dt_kick_grav, 
+                  dt_kick_mesh_grav, dt_kick_therm, dt_kick_corr, 
+                  cosmo, hydro_props, entropy_floor, ti_begin, ti_end, 
+                  ti_begin_mesh, ti_end_mesh);
 
         /* Update the accelerations to be used in the drift for hydro */
         if (p->gpart != NULL) {
@@ -444,15 +447,18 @@ void runner_do_kick2(struct runner *r, struct cell *c, const int timer) {
             ti_begin, ti_end, time_base, with_cosmology, cosmo);
         const double dt_kick_hydro = kick_get_hydro_kick_dt(
             ti_begin, ti_end, time_base, with_cosmology, cosmo);
+          const double dt_kick_mhd= kick_get_mhd_kick_dt(
+            ti_begin, ti_end, time_base, with_cosmology, cosmo);
         const double dt_kick_therm = kick_get_therm_kick_dt(
             ti_begin, ti_end, time_base, with_cosmology, cosmo);
         const double dt_kick_corr = kick_get_corr_kick_dt(
             ti_begin, ti_end, time_base, with_cosmology, cosmo);
 
         /* Finish the time-step with a second half-kick */
-        kick_part(p, xp, dt_kick_hydro, dt_kick_grav, dt_kick_mesh_grav,
-                  dt_kick_therm, dt_kick_corr, cosmo, hydro_props,
-                  entropy_floor, ti_begin, ti_end, ti_begin_mesh, ti_end_mesh);
+        kick_part(p, xp, dt_kick_hydro, dt_kick_mhd, dt_kick_grav, 
+                  dt_kick_mesh_grav, dt_kick_therm, dt_kick_corr, 
+                  cosmo, hydro_props, entropy_floor, ti_begin, ti_end, 
+                  ti_begin_mesh, ti_end_mesh);
 
 #ifdef SWIFT_DEBUG_CHECKS
         /* Check that kick and the drift are synchronized */

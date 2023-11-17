@@ -103,6 +103,14 @@ struct part {
   /* Particle predicted velocity. */
   float v[3];
 
+#ifdef WITH_MHD
+  /* Predicted comoving magnetic field */
+  float B[3];
+
+  /* True magnetic field */
+  float B_full[3];
+#endif
+
   /* Particle acceleration. */
   float a_hydro[3];
 

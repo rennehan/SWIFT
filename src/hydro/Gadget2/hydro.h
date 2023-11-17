@@ -519,6 +519,7 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
   p->density.rot_B[2] = 0.f;
   p->density.div_B = 0.f;
   p->density.Alfven_velocity = 0.f;
+  p->DB_Dt = 0.f;
 #endif
 }
 
@@ -804,6 +805,12 @@ __attribute__((always_inline)) INLINE static void hydro_reset_predicted_values(
   p->v[1] = xp->v_full[1];
   p->v[2] = xp->v_full[2];
 
+#ifdef WITH_MHD
+  p->B[0] = p->B_full[0];
+  p->B[1] = p->B_full[1];
+  p->B[2] = p->B_full[2];
+#endif
+
   /* Re-set the entropy */
   p->entropy = xp->entropy_full;
 
@@ -840,6 +847,7 @@ __attribute__((always_inline)) INLINE static void hydro_reset_predicted_values(
  */
 __attribute__((always_inline)) INLINE static void hydro_predict_extra(
     struct part *restrict p, const struct xpart *restrict xp, float dt_drift,
+    float dt_mhd,
     float dt_therm, float dt_kick_grav, const struct cosmology *cosmo,
     const struct hydro_props *hydro_props,
     const struct entropy_floor_properties *floor_props,
@@ -847,6 +855,12 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
 
   /* Predict the entropy */
   p->entropy += p->entropy_dt * dt_therm;
+
+#ifdef WITH_MHD
+  p->B[0] += p->DB_Dt[0] * dt_mhd;
+  p->B[1] += p->DB_Dt[1] * dt_mhd;
+  p->B[2] += p->DB_Dt[2] * dt_mhd;
+#endif
 
   const float h_inv = 1.f / p->h;
 
@@ -933,7 +947,8 @@ __attribute__((always_inline)) INLINE static void hydro_end_force(
  */
 __attribute__((always_inline)) INLINE static void hydro_kick_extra(
     struct part *restrict p, struct xpart *restrict xp, float dt_therm,
-    float dt_grav, float dt_grav_mesh, float dt_hydro, float dt_kick_corr,
+    float dt_grav, float dt_grav_mesh, float dt_hydro, float dt_mhd,
+    float dt_kick_corr,
     const struct cosmology *cosmo, const struct hydro_props *hydro_props,
     const struct entropy_floor_properties *floor_props) {
 
@@ -962,6 +977,13 @@ __attribute__((always_inline)) INLINE static void hydro_kick_extra(
     xp->entropy_full = entropy_min;
     p->entropy_dt = 0.f;
   }
+
+#ifdef WITH_MHD
+  /* Kick particles in momentum space (hydro acc.) */
+  p->B_full[0] += p->DB_Dt[0] * dt_mhd;
+  p->B_full[1] += p->DB_Dt[1] * dt_mhd;
+  p->B_full[2] += p->DB_Dt[2] * dt_mhd;
+#endif
 }
 
 /**
@@ -1032,6 +1054,12 @@ __attribute__((always_inline)) INLINE static void hydro_first_init_part(
   xp->v_full[1] = p->v[1];
   xp->v_full[2] = p->v[2];
   xp->entropy_full = p->entropy;
+
+#ifdef WITH_MHD
+  p->B_full[0] = p->B[0];
+  p->B_full[1] = p->B[1];
+  p->B_full[2] = p->B[2];
+#endif
 
   hydro_reset_acceleration(p);
   hydro_init_part(p, NULL);

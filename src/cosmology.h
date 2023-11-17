@@ -235,6 +235,9 @@ struct cosmology {
   /*! Kick factor (hydro) interpolation table */
   double *hydro_kick_fac_interp_table;
 
+  /*! Kick factor (mhd) interpolation table */
+  double *mhd_kick_fac_interp_table;
+  
   /*! Kick factor (hydro correction) interpolation table (GIZMO-MFV only) */
   double *hydro_kick_corr_interp_table;
 

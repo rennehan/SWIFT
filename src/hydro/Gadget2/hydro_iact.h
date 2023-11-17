@@ -635,9 +635,16 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
       (f_i * P_over_rho2_i * wi_dr + f_j * P_over_rho2_j * wj_dr) * r_inv;
   float mhd_term[3] = {0.f};
   float mhd_correction_i[3] = {0.f};
-  flaot mhd_correction_j[3] = {0.f};
+  float mhd_correction_j[3] = {0.f};
 
 #ifdef WITH_MHD
+  /* eta for artificial magnetic dissipation */
+  const float eta = 0.5f * (pi->B_alpha + pj->B_alpha) * r;
+
+  const float dB[3] = {pi->B[0] - pj->B[0],
+                       pi->B[1] - pj->B[1],
+                       pi->B[2] - pj->B[2]};
+
   const double B_i2 = pi->B[0] * pi->B[0] +
                       pi->B[1] * pi->B[1] +
                       pi->B[2] * pi->B[2];
@@ -645,7 +652,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
                       pj->B[1] * pj->B[1] +
                       pj->B[2] * pj->B[2];
 
-  /* Price 2012 Eq. 116*/
+  /* Price 2012 Eq. 116 */
   double S_kl_i[3][3];
   double S_kl_j[3][3];
   int k, l;
@@ -667,13 +674,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
       (pi->B[1] * weight_term_i + pj->B[2] * weight_term_j) * dx[1] +
       (pi->B[2] * weight_term_i + pj->B[2] * weight_term_j) * dx[2];
 
-  magnetic_correction_i[0] += pi->B[0] * magnetic_correction_factor;
-  magnetic_correction_i[1] += pi->B[1] * magnetic_correction_factor;
-  magnetic_correction_i[2] += pi->B[2] * magnetic_correction_factor;
+  mhd_correction_i[0] += pi->B[0] * magnetic_correction_factor;
+  mhd_correction_i[1] += pi->B[1] * magnetic_correction_factor;
+  mhd_correction_i[2] += pi->B[2] * magnetic_correction_factor;
 
-  magnetic_correction_j[0] += pj->B[0] * magnetic_correction_factor;
-  magnetic_correction_j[1] += pj->B[1] * magnetic_correction_factor;
-  magnetic_correction_j[2] += pj->B[2] * magnetic_correction_factor;
+  mhd_correction_j[0] += pj->B[0] * magnetic_correction_factor;
+  mhd_correction_j[1] += pj->B[1] * magnetic_correction_factor;
+  mhd_correction_j[2] += pj->B[2] * magnetic_correction_factor;
 
   for (k = 0; k < 3; k++) {
     for (l = 0; l < 3; l++) {
@@ -686,13 +693,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float acc = visc_term + sph_term;
 
   /* Use the force Luke ! */
-  pi->a_hydro[0] -= mj * acc * dx[0] - mhd_term[0] + magnetic_correction_i[0];
-  pi->a_hydro[1] -= mj * acc * dx[1] - mhd_term[0] + magnetic_correction_i[0];
-  pi->a_hydro[2] -= mj * acc * dx[2] - mhd_term[0] + magnetic_correction_i[0];
+  pi->a_hydro[0] -= mj * acc * dx[0] - mhd_term[0] + mhd_correction_i[0];
+  pi->a_hydro[1] -= mj * acc * dx[1] - mhd_term[0] + mhd_correction_i[0];
+  pi->a_hydro[2] -= mj * acc * dx[2] - mhd_term[0] + mhd_correction_i[0];
 
-  pj->a_hydro[0] += mi * acc * dx[0] + mhd_term[0] - magnetic_correction_j[0];
-  pj->a_hydro[1] += mi * acc * dx[1] + mhd_term[0] - magnetic_correction_j[0];
-  pj->a_hydro[2] += mi * acc * dx[2] + mhd_term[0] - magnetic_correction_j[0];
+  pj->a_hydro[0] += mi * acc * dx[0] + mhd_term[0] - mhd_correction_j[0];
+  pj->a_hydro[1] += mi * acc * dx[1] + mhd_term[0] - mhd_correction_j[0];
+  pj->a_hydro[2] += mi * acc * dx[2] + mhd_term[0] - mhd_correction_j[0];
 
   /* Get the time derivative for h. */
   pi->force.h_dt -= mj * dvdr * r_inv / rhoj * wi_dr;
@@ -707,18 +714,45 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   pj->entropy_dt += mi * visc_term * dvdr_Hubble;
 
 #ifdef WITH_MHD
+  /* Change in entropy due to artificial magnetic dissipation */
+  pi->entropy_dt -= 0.5f * eta * (dB[0] * dB[0] + dB[1] * dB[1] + dB[2] * dB[2]);
+  pj->entropy_dt -= 0.5f * eta * (dB[0] * dB[0] + dB[1] * dB[1] + dB[2] * dB[2]); 
+
   /* Compute dv dot r. */
   const float dv_dr[3] = {(pi->v[0] - pj->v[0]) * dx[0],
                           (pi->v[1] - pj->v[1]) * dx[1],
                           (pi->v[2] - pj->v[2]) * dx[2]};
 
-  pi->DB_Dt += (pi->B[0] * dv_dr[1] - pi->B[1] * dv_dr[0]) * dx[1] +
+  pi->DB_Dt[0] += (pi->B[0] * dv_dr[1] - pi->B[1] * dv_dr[0]) * dx[1] +
                (pi->B[0] * dv_dr[2] - pi->B[2] * dv_dr[0]) * dx[2];
-  pi->DB_Dt *= mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[1] += (pi->B[1] * dv_dr[2] - pi->B[2] * dv_dr[1]) * dx[2] +
+               (pi->B[1] * dv_dr[0] - pi->B[0] * dv_dr[1]) * dx[0];
+  pi->DB_Dt[2] += (pi->B[2] * dv_dr[0] - pi->B[0] * dv_dr[2]) * dx[0] +
+                  (pi->B[2] * dv_dr[1] - pi->B[1] * dv_dr[2]) * dx[1];
 
-  pj->DB_Dt += (pj->B[0] * dv_dr[1] - pj->B[1] * dv_dr[0]) * dx[1] +
+  pi->DB_Dt[0] *= mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[1] *= mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[2] *= mi * r_inv * wj_dr / rhoi;
+
+  pj->DB_Dt[0] += (pj->B[0] * dv_dr[1] - pj->B[1] * dv_dr[0]) * dx[1] +
                (pj->B[0] * dv_dr[2] - pj->B[2] * dv_dr[0]) * dx[2];
-  pj->DB_Dt *= mj * r_inv * wi_dr / rhoj;
+  pj->DB_Dt[1] += (pj->B[1] * dv_dr[2] - pj->B[2] * dv_dr[1]) * dx[2] +
+               (pj->B[1] * dv_dr[0] - pj->B[0] * dv_dr[1]) * dx[0];
+  pj->DB_Dt[2] += (pj->B[2] * dv_dr[0] - pj->B[0] * dv_dr[2]) * dx[0] +
+                  (pj->B[2] * dv_dr[1] - pj->B[1] * dv_dr[2]) * dx[1];
+
+  pj->DB_Dt[0] *= mj * r_inv * wi_dr / rhoj;
+  pj->DB_Dt[1] *= mj * r_inv * wi_dr / rhoj;
+  pj->DB_Dt[2] *= mj * r_inv * wi_dr / rhoj;
+
+  /* Artificial dissipation */
+  pi->DB_Dt[0] += eta * dB[0] * mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[1] += eta * dB[1] * mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[2] += eta * dB[2] * mi * r_inv * wj_dr / rhoi;
+
+  pj->DB_Dt[0] += eta * dB[0] * mj * r_inv * wi_dr / rhoj;
+  pj->DB_Dt[1] += eta * dB[1] * mj * r_inv * wi_dr / rhoj;
+  pj->DB_Dt[2] += eta * dB[2] * mj * r_inv * wi_dr / rhoj;
 #endif
 
 #ifdef DEBUG_INTERACTIONS_SPH

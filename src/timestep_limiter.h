@@ -134,13 +134,16 @@ __attribute__((always_inline)) INLINE static integertime_t timestep_limit_part(
     if (dti_new > dti_old) error("New time-step larger than old one");
 #endif
 
-    double dt_kick_grav = 0., dt_kick_hydro = 0., dt_kick_therm = 0.,
+    double dt_kick_grav = 0., dt_kick_hydro = 0., dt_kick_mhd = 0.,
+           dt_kick_therm = 0.,
            dt_kick_corr = 0.;
 
     /* Now we need to reverse the kick1...
      * Note the minus sign! (the dt are negative here) */
     dt_kick_hydro = -kick_get_hydro_kick_dt(ti_beg_old, ti_end_half_old,
                                             time_base, with_cosmology, cosmo);
+    dt_kick_mhd = -kick_get_mhd_kick_dt(ti_beg_old, ti_end_half_old,
+                                        time_base, with_cosmology, cosmo);
     dt_kick_grav = -kick_get_grav_kick_dt(ti_beg_old, ti_end_half_old,
                                           time_base, with_cosmology, cosmo);
     dt_kick_therm = -kick_get_therm_kick_dt(ti_beg_old, ti_end_half_old,
@@ -150,7 +153,7 @@ __attribute__((always_inline)) INLINE static integertime_t timestep_limit_part(
 
     /* Note that there is no need to change the mesh integration as we
      * can't go back more than one global step */
-    kick_part(p, xp, dt_kick_hydro, dt_kick_grav, /*dt_kick_mesh_grav=*/0.,
+    kick_part(p, xp, dt_kick_hydro, dt_kick_mhd, dt_kick_grav, /*dt_kick_mesh_grav=*/0.,
               dt_kick_therm, dt_kick_corr, e->cosmology, e->hydro_properties,
               e->entropy_floor, ti_end_half_old, ti_beg_old,
               /*ti_start_mesh=*/-1, /*ti_end_mesh=*/-1);
@@ -159,6 +162,8 @@ __attribute__((always_inline)) INLINE static integertime_t timestep_limit_part(
      * This brings us to the current time. */
     dt_kick_hydro = kick_get_hydro_kick_dt(ti_beg_old, ti_beg_new, time_base,
                                            with_cosmology, cosmo);
+    dt_kick_mhd = kick_get_mhd_kick_dt(ti_beg_old, ti_beg_new, time_base,
+                                       with_cosmology, cosmo);
     dt_kick_grav = kick_get_grav_kick_dt(ti_beg_old, ti_beg_new, time_base,
                                          with_cosmology, cosmo);
     dt_kick_therm = kick_get_therm_kick_dt(ti_beg_old, ti_beg_new, time_base,
@@ -168,7 +173,7 @@ __attribute__((always_inline)) INLINE static integertime_t timestep_limit_part(
 
     /* Note that there is no need to change the mesh integration as we
      * can't go back more than one global step */
-    kick_part(p, xp, dt_kick_hydro, dt_kick_grav, /*dt_kick_mesh_grav=*/0.,
+    kick_part(p, xp, dt_kick_hydro, dt_kick_mhd, dt_kick_grav, /*dt_kick_mesh_grav=*/0.,
               dt_kick_therm, dt_kick_corr, e->cosmology, e->hydro_properties,
               e->entropy_floor, ti_beg_old, ti_beg_new, /*ti_start_mesh=*/-1,
               /*ti_end_mesh=*/-1);
@@ -189,6 +194,8 @@ __attribute__((always_inline)) INLINE static integertime_t timestep_limit_part(
 
       dt_kick_hydro = kick_get_hydro_kick_dt(ti_beg_new, ti_end_half_new,
                                              time_base, with_cosmology, cosmo);
+      dt_kick_mhd = kick_get_mhd_kick_dt(ti_beg_new, ti_end_half_new,
+                                         time_base, with_cosmology, cosmo);
       dt_kick_grav = kick_get_grav_kick_dt(ti_beg_new, ti_end_half_new,
                                            time_base, with_cosmology, cosmo);
       dt_kick_therm = kick_get_therm_kick_dt(ti_beg_new, ti_end_half_new,
@@ -198,7 +205,7 @@ __attribute__((always_inline)) INLINE static integertime_t timestep_limit_part(
 
       /* Note that there is no need to change the mesh integration as we
        * can't go back more than one global step */
-      kick_part(p, xp, dt_kick_hydro, dt_kick_grav, /*dt_kick_mesh_grav=*/0.,
+      kick_part(p, xp, dt_kick_hydro, dt_kick_mhd, dt_kick_grav, /*dt_kick_mesh_grav=*/0.,
                 dt_kick_therm, dt_kick_corr, e->cosmology, e->hydro_properties,
                 e->entropy_floor, ti_beg_new, ti_end_half_new,
                 /*ti_start_mesh=*/-1, /*ti_end_mesh=*/-1);

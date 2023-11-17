@@ -221,7 +221,7 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force,
 
   } else if (!c->split && force && ti_current > ti_old_part) {
     /* Drift from the last time the cell was drifted to the current time */
-    double dt_drift, dt_kick_grav, dt_kick_hydro, dt_therm;
+    double dt_drift, dt_kick_grav, dt_kick_hydro, dt_kick_mhd, dt_therm;
     if (with_cosmology) {
       dt_drift =
           cosmology_get_drift_factor(e->cosmology, ti_old_part, ti_current);
@@ -229,12 +229,15 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force,
           cosmology_get_grav_kick_factor(e->cosmology, ti_old_part, ti_current);
       dt_kick_hydro = cosmology_get_hydro_kick_factor(e->cosmology, ti_old_part,
                                                       ti_current);
+      dt_kick_mhd = cosmology_get_mhd_kick_factor(e->cosmology, ti_old_part,
+                                                  ti_current);                                            
       dt_therm = cosmology_get_therm_kick_factor(e->cosmology, ti_old_part,
                                                  ti_current);
     } else {
       dt_drift = (ti_current - ti_old_part) * e->time_base;
       dt_kick_grav = (ti_current - ti_old_part) * e->time_base;
       dt_kick_hydro = (ti_current - ti_old_part) * e->time_base;
+      dt_kick_mhd = (ti_current - ti_old_part) * e->time_base;
       dt_therm = (ti_current - ti_old_part) * e->time_base;
     }
 
@@ -254,8 +257,9 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force,
       feedback_update_part(p, xp, e);
 
       /* Drift... */
-      drift_part(p, xp, dt_drift, dt_kick_hydro, dt_kick_grav, dt_therm,
-                 ti_old_part, ti_current, e, replication_list, c->loc);
+      drift_part(p, xp, dt_drift, dt_kick_hydro, dt_kick_mhd, dt_kick_grav, 
+                 dt_therm, ti_old_part, ti_current, e, replication_list, 
+                 c->loc);
 
       /* Update the tracers properties */
       tracers_after_drift(p, xp, e->internal_units, e->physical_constants,

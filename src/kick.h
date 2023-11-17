@@ -213,7 +213,9 @@ __attribute__((always_inline)) INLINE static void kick_gpart(
  */
 __attribute__((always_inline)) INLINE static void kick_part(
     struct part *restrict p, struct xpart *restrict xp,
-    const double dt_kick_hydro, const double dt_kick_grav,
+    const double dt_kick_hydro, 
+    const double dt_kick_mhd,
+    const double dt_kick_grav,
     const double dt_kick_mesh_grav, const double dt_kick_therm,
     const double dt_kick_corr, const struct cosmology *cosmo,
     const struct hydro_props *hydro_props,
@@ -272,7 +274,8 @@ __attribute__((always_inline)) INLINE static void kick_part(
   rt_kick_extra(p, dt_kick_therm, dt_kick_grav, dt_kick_hydro, dt_kick_corr,
                 cosmo, hydro_props);
   hydro_kick_extra(p, xp, dt_kick_therm, dt_kick_grav, dt_kick_mesh_grav,
-                   dt_kick_hydro, dt_kick_corr, cosmo, hydro_props,
+                   dt_kick_hydro, dt_kick_mhd,
+                   dt_kick_corr, cosmo, hydro_props,
                    floor_props);
   mhd_kick_extra(p, xp, dt_kick_therm, dt_kick_grav, dt_kick_hydro,
                  dt_kick_corr, cosmo, hydro_props, floor_props);

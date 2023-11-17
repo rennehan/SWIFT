@@ -142,7 +142,8 @@ __attribute__((always_inline)) INLINE static void drift_gpart(
  */
 __attribute__((always_inline)) INLINE static void drift_part(
     struct part *restrict p, struct xpart *restrict xp, double dt_drift,
-    double dt_kick_hydro, double dt_kick_grav, double dt_therm,
+    double dt_kick_hydro, double dt_kick_mhd,
+    double dt_kick_grav, double dt_therm,
     integertime_t ti_old, integertime_t ti_current, const struct engine *e,
     struct replication_list *replication_list, const double cell_loc[3]) {
 
@@ -200,7 +201,8 @@ __attribute__((always_inline)) INLINE static void drift_part(
   }
 
   /* Predict the values of the extra fields */
-  hydro_predict_extra(p, xp, dt_drift, dt_therm, dt_kick_grav, cosmo,
+  hydro_predict_extra(p, xp, dt_drift, dt_kick_mhd, dt_therm, 
+                      dt_kick_grav, cosmo,
                       hydro_props, entropy_floor, pressure_floor);
   mhd_predict_extra(p, xp, dt_drift, dt_therm, cosmo, hydro_props,
                     entropy_floor);
