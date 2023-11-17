@@ -109,6 +109,9 @@ struct part {
 
   /* True magnetic field */
   float B_full[3];
+
+  /* Induction equation */
+  float dB_Dt[3];
 #endif
 
   /* Particle acceleration. */
