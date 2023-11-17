@@ -102,10 +102,10 @@ struct unit_system;
  * @param phys_const: pointer to the physical constants system
  * @param mhd: pointer to the mhd_global_data struct to be filled.
  **/
-static INLINE void viscosity_init(struct swift_params* params,
-                                  const struct unit_system* us,
-                                  const struct phys_const* phys_const,
-                                  struct mhd_global_data* mhd) {
+static INLINE void mhd_init(struct swift_params* params,
+                            const struct unit_system* us,
+                            const struct phys_const* phys_const,
+                            struct mhd_global_data* mhd) {
 
   /* Read the MHD parameters from the file, if they exist,
    * otherwise set them to the defaults defined above. */

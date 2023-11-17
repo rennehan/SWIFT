@@ -745,10 +745,14 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
   p->force.balsara = balsara;
 
 #ifdef WITH_MHD
+  /* TODO check soundspeed scale factor */
+  const float cleaning_velocity = sqrtf(
+    p->density.Alfven_velocity * p->density.Alfven_velocity +
+    soundspeed * soundspeed
+  );
   p->force.div_B = p->density.div_B;
-  /* physical */
-  p->force.magnetic_psi_over_rho2 = p->magnetic_psi * rho_inv * rho_inv *
-                                    cosmo->a2_inv;
+  p->force.magnetic_psi_over_rho2 = p->magnetic_psi * cleaning_velocity *
+                                    rho_inv * rho_inv;
 #endif
 }
 
