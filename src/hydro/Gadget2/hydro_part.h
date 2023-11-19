@@ -111,7 +111,17 @@ struct part {
   float B_full[3];
 
   /* Induction equation */
-  float dB_Dt[3];
+  float DB_Dt[3];
+
+  /* Alfven wave speed */
+  float Alfven_speed;
+
+  /* Coefficients for artificial magnetic dissipation */
+  float B_alpha;
+
+  float rot_B[3];
+
+  float div_B;
 #endif
 
   /* Particle acceleration. */

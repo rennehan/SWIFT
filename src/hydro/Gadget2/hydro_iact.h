@@ -126,28 +126,29 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 
 #ifdef WITH_MHD
   /* Recall: B_ours is B_real / sqrt(4 * pi) */
-
+  double dB[3], curlBr[3];
+  
   /* Compute dB dot r */
   dB[0] = pi->B[0] - pj->B[0];
   dB[1] = pi->B[1] - pj->B[1];
   dB[2] = pi->B[2] - pj->B[2];
   const float dBdr = dB[0] * dx[0] + dB[1] * dx[1] + dB[2] * dx[2];
 
-  pi->density.div_B -= faci * dBdr;
-  pj->density.div_B -= facj * dBdr;
+  pi->div_B -= faci * dBdr;
+  pj->div_B -= facj * dBdr;
 
   /* Compute dB cross r */
   curlBr[0] = dB[1] * dx[2] - dB[2] * dx[1];
   curlBr[1] = dB[2] * dx[0] - dB[0] * dx[2];
   curlBr[2] = dB[0] * dx[1] - dB[1] * dx[0];
 
-  pi->density.rot_B[0] += faci * curlBr[0];
-  pi->density.rot_B[1] += faci * curlBr[1];
-  pi->density.rot_B[2] += faci * curlBr[2];
+  pi->rot_B[0] += faci * curlBr[0];
+  pi->rot_B[1] += faci * curlBr[1];
+  pi->rot_B[2] += faci * curlBr[2];
 
-  pj->density.rot_B[0] += facj * curlBr[0];
-  pj->density.rot_B[1] += facj * curlBr[1];
-  pj->density.rot_B[2] += facj * curlBr[2];
+  pj->rot_B[0] += facj * curlBr[0];
+  pj->rot_B[1] += facj * curlBr[1];
+  pj->rot_B[2] += facj * curlBr[2];
 #endif
 
 #ifdef DEBUG_INTERACTIONS_SPH
@@ -229,22 +230,23 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
 
 #ifdef WITH_MHD
   /* Recall: B_ours is B_real / sqrt(4 * pi) */
+  double dB[3], curlBr[3];
 
   /* Compute dB dot r */
   dB[0] = pi->B[0] - pj->B[0];
   dB[1] = pi->B[1] - pj->B[1];
   dB[2] = pi->B[2] - pj->B[2];
   const float dBdr = dB[0] * dx[0] + dB[1] * dx[1] + dB[2] * dx[2];
-  pi->density.div_B -= fac * dBdr;
+  pi->div_B -= fac * dBdr;
 
   /* Compute dB cross r */
   curlBr[0] = dB[1] * dx[2] - dB[2] * dx[1];
   curlBr[1] = dB[2] * dx[0] - dB[0] * dx[2];
   curlBr[2] = dB[0] * dx[1] - dB[1] * dx[0];
 
-  pi->density.rot_B[0] += fac * curlBr[0];
-  pi->density.rot_B[1] += fac * curlBr[1];
-  pi->density.rot_B[2] += fac * curlBr[2];
+  pi->rot_B[0] += fac * curlBr[0];
+  pi->rot_B[1] += fac * curlBr[1];
+  pi->rot_B[2] += fac * curlBr[2];
 #endif
 
 #ifdef DEBUG_INTERACTIONS_SPH
@@ -603,22 +605,34 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* Signal velocity */
 #ifdef WITH_MHD
-  const double B_dot_r = (pj->B[0] * dx[0] + 
-                         pj->B[1] * dx[1] + 
-                         pj->B[2] * dx[2]) / r;
-  const double B_dot_r2 = B_dot_r * B_dot_r;
+  const double B_dot_r_i = (pi->B[0] * dx[0] + 
+                            pi->B[1] * dx[1] + 
+                            pi->B[2] * dx[2]) / r;
+  const double B_dot_r2_i = B_dot_r_i * B_dot_r_i;
+  const double soundspeed_i2 = pi->force.soundspeed * pi->force.soundspeed;
+  const double term_A_i = pi->Alfven_speed * pi->Alfven_speed +
+                          soundspeed_i2;
+  const double term_B_i = term_A_i * term_A_i - 
+                          4.0 * soundspeed_i2 * B_dot_r2_i / rhoi;
+  const double magnetic_signal_vel_i
+      = sqrt(0.5 * (term_A_i + sqrt(max(term_B_i, 0.0))));
 
-  const double soundspeed_j2 = pj->soundspeed * pj->soundspeed;
+  const double B_dot_r_j = (pj->B[0] * dx[0] +
+                            pj->B[1] * dx[1] +
+                            pj->B[2] * dx[2]) / r;
+  const double B_dot_r2_j = B_dot_r_j * B_dot_r_j;
+  const double soundspeed_j2 = pj->force.soundspeed * pj->force.soundspeed;
   /* Price 2012 Eq. 132, first term in sqrt */
-  const double term_A = pj->Alfven_velocity * pj->Alfven_velocity +
-                       pj->soundspeed * pj->soundspeed;
+  const double term_A_j = pj->Alfven_speed * pj->Alfven_speed +
+                          soundspeed_j2;
   /* Price 2012 Eq. 132, second term in sqrt */
-  const double term_B = term_A * term_A - 4.0 * soundspeed_j2 * B_dot_r2 / rhoj;
-  const double magnetic_signal_vel
-      = sqrtf(0.5 * (term_A + sqrtf(max(term_B, 0.0))));
+  const double term_B_j = term_A_j * term_A_j - 
+                          4.0 * soundspeed_j2 * B_dot_r2_j / rhoj;
+  const double magnetic_signal_vel_j
+      = sqrt(0.5 * (term_A_j + sqrt(max(term_B_j, 0.0))));
 
-  /* TODO define const_mhd_beta = 2 */
-  const float beta = const_mhd_beta;
+  /* WITH_MHD, const_viscosity_beta = 2 */
+  const float beta = const_viscosity_beta;
   const float v_sig = magnetic_signal_vel_i + magnetic_signal_vel_j - beta * mu_ij;
 #else
   const float beta = const_viscosity_beta;
@@ -684,7 +698,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   for (k = 0; k < 3; k++) {
     for (l = 0; l < 3; l++) {
-      mhd_term[k] += (S_kl_i[k][l] * weight_term_i + S_kl_j[k][l] * weight_term_j) * dx[k];
+      mhd_term[k] += (S_kl_i[k][l] * weight_term_i + 
+                      S_kl_j[k][l] * weight_term_j) * dx[k];
     }
   }
 #endif

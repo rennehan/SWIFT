@@ -514,12 +514,11 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
   p->density.rot_v[2] = 0.f;
 
 #ifdef WITH_MHD
-  p->density.rot_B[0] = 0.f;
-  p->density.rot_B[1] = 0.f;
-  p->density.rot_B[2] = 0.f;
-  p->density.div_B = 0.f;
-  p->density.Alfven_velocity = 0.f;
-  p->DB_Dt = 0.f;
+  p->rot_B[0] = 0.f;
+  p->rot_B[1] = 0.f;
+  p->rot_B[2] = 0.f;
+  p->div_B = 0.f;
+  p->Alfven_speed = 0.f;
 #endif
 }
 
@@ -566,18 +565,18 @@ __attribute__((always_inline)) INLINE static void hydro_end_density(
 
 #ifdef WITH_MHD
   /* Finish calculation of the (physical) velocity curl components */
-  p->density.rot_B[0] *= h_inv_dim_plus_one * a_inv2 * rho_inv;
-  p->density.rot_B[1] *= h_inv_dim_plus_one * a_inv2 * rho_inv;
-  p->density.rot_B[2] *= h_inv_dim_plus_one * a_inv2 * rho_inv;
+  p->rot_B[0] *= h_inv_dim_plus_one * a_inv2 * rho_inv;
+  p->rot_B[1] *= h_inv_dim_plus_one * a_inv2 * rho_inv;
+  p->rot_B[2] *= h_inv_dim_plus_one * a_inv2 * rho_inv;
 
   /* Finish calculation of the (physical) velocity divergence */
-  p->density.div_B *= h_inv_dim_plus_one * a_inv2 * rho_inv;
+  p->div_B *= h_inv_dim_plus_one * a_inv2 * rho_inv;
 
   /* Recall: B_ours = B_real / sqrt(4 * pi) */
   const float B_magnitude2 = p->B[0] * p->B[0] +
                              p->B[1] * p->B[1] + 
                              p->B[2] * p->B[2];
-  p->density.Alfven_velocity = sqrtf(B_magnitude2 * a_inv2 * rho_inv);
+  p->Alfven_speed = sqrtf(B_magnitude2 * a_inv2 * rho_inv);
 #endif
 }
 
@@ -651,11 +650,11 @@ __attribute__((always_inline)) INLINE static void hydro_part_has_no_neighbours(
   p->density.rot_v[2] = 0.f;
 
 #ifdef WITH_MHD
-  p->density.rot_B[0] = 0.f;
-  p->density.rot_B[1] = 0.f;
-  p->density.rot_B[2] = 0.f;
-  p->density.div_B = 0.f;
-  p->density.Alfven_velocity = 0.f;
+  p->rot_B[0] = 0.f;
+  p->rot_B[1] = 0.f;
+  p->rot_B[2] = 0.f;
+  p->div_B = 0.f;
+  p->Alfven_speed = 0.f;
 #endif
 }
 
@@ -746,14 +745,7 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
   p->force.balsara = balsara;
 
 #ifdef WITH_MHD
-  /* TODO check soundspeed scale factor */
-  const float cleaning_velocity = sqrtf(
-    p->density.Alfven_velocity * p->density.Alfven_velocity +
-    soundspeed * soundspeed
-  );
-  p->force.div_B = p->density.div_B;
-  p->force.magnetic_psi_over_rho2 = p->magnetic_psi * cleaning_velocity *
-                                    rho_inv * rho_inv;
+  /* TODO cleaning velocity, magnetic psi/ rho^2 */
 #endif
 }
 
@@ -784,6 +776,12 @@ __attribute__((always_inline)) INLINE static void hydro_reset_acceleration(
 
   /* Reset maximal signal velocity */
   p->force.v_sig = 2.f * p->force.soundspeed;
+
+#ifdef WITH_MHD
+  p->DB_Dt[0] = 0.f;
+  p->DB_Dt[1] = 0.f;
+  p->DB_Dt[2] = 0.f;
+#endif
 }
 
 /**

@@ -79,6 +79,29 @@ __attribute__((always_inline)) INLINE static double kick_get_hydro_kick_dt(
 }
 
 /**
+ * @brief Compute the time-step length for a hydro kick.
+ *
+ * @param ti_beg Start of the time-step (on the integer time-line).
+ * @param ti_end End of the time-step (on the integer time-line).
+ * @param time_base Minimal time-step size on the time-line.
+ * @param with_cosmology Are we running with cosmology integration?
+ * @param cosmo The #cosmology object.
+ *
+ * @return The time-step size for the MHD kick (internal units).
+ */
+__attribute__((always_inline)) INLINE static double kick_get_mhd_kick_dt(
+    const integertime_t ti_beg, const integertime_t ti_end,
+    const double time_base, const int with_cosmology,
+    const struct cosmology *cosmo) {
+
+  if (with_cosmology) {
+    return cosmology_get_mhd_kick_factor(cosmo, ti_beg, ti_end);
+  } else {
+    return (ti_end - ti_beg) * time_base;
+  }
+}
+
+/**
  * @brief Compute the time-step length for a thermal kick.
  *
  * @param ti_beg Start of the time-step (on the integer time-line).

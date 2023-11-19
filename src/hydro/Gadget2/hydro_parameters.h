@@ -47,7 +47,11 @@
 /* Cosmology default beta=3.0.
  * Alpha can be set in the parameter file.
  * Beta is defined as in e.g. Price (2010) Eqn (103) */
+#ifdef WITH_MHD
+#define const_viscosity_beta 2.0f
+#else
 #define const_viscosity_beta 3.0f
+#endif
 
 /* The viscosity that the particles are reset to after being hit by a
  * feedback event. This should be set to the same value as the
@@ -64,7 +68,7 @@
 /* Structs that store the relevant variables */
 
 #ifdef WITH_MHD
-struct mhd_global_data {
+struct mhd_builtin_global_data {
   float artificial_dissipation_constant;
   float artificial_dissipation_minimum;
   float artificial_dissipation_source;
@@ -72,7 +76,7 @@ struct mhd_global_data {
   int with_div_B_cleaning;
   float div_B_parabolic_sigma;
   float div_B_over_clean_factor;
-}
+};
 #endif
 
 /*! Artificial viscosity parameters */
@@ -100,12 +104,12 @@ struct unit_system;
  * @param params: the pointer to the swift_params file
  * @param us: pointer to the internal unit system
  * @param phys_const: pointer to the physical constants system
- * @param mhd: pointer to the mhd_global_data struct to be filled.
+ * @param mhd: pointer to the mhd_builtin_global_data struct to be filled.
  **/
-static INLINE void mhd_init(struct swift_params* params,
-                            const struct unit_system* us,
-                            const struct phys_const* phys_const,
-                            struct mhd_global_data* mhd) {
+static INLINE void mhd_builtin_init(struct swift_params* params,
+                                    const struct unit_system* us,
+                                    const struct phys_const* phys_const,
+                                    struct mhd_builtin_global_data* mhd) {
 
   /* Read the MHD parameters from the file, if they exist,
    * otherwise set them to the defaults defined above. */
@@ -123,7 +127,7 @@ static INLINE void mhd_init(struct swift_params* params,
   );
 
   mhd->with_div_B_cleaning = parser_get_opt_param_int(
-    params, "SPH:with_div_B_cleaning"
+    params, "SPH:with_div_B_cleaning", 0
   );
   mhd->div_B_parabolic_sigma = parser_get_param_float(
     params, "SPH:div_B_parabolic_sigma"
@@ -140,10 +144,10 @@ static INLINE void mhd_init(struct swift_params* params,
  * @brief Initialises an MHD struct to sensible numbers for mocking
  *        purposes.
  *
- * @param mhd: pointer to the mhd_global_data struct to be filled.
+ * @param mhd: pointer to the mhd_builtin_global_data struct to be filled.
  **/
-static INLINE void mhd_init_no_hydro(
-    struct mhd_global_data* mhd) {
+static INLINE void mhd_builtin_init_no_hydro(
+    struct mhd_builtin_global_data* mhd) {
   /* TODO: Change these */
   mhd->artificial_dissipation_constant = 0.f;
   mhd->artificial_dissipation_minimum = 0.f;
@@ -160,8 +164,8 @@ static INLINE void mhd_init_no_hydro(
  * @param viscosity: pointer to the viscosity_global_data struct found in
  *                   hydro_properties
  **/
-static INLINE void mhd_print(
-    const struct mhd_global_data* mhd) {
+static INLINE void mhd_builtin_print(
+    const struct mhd_builtin_global_data* mhd) {
   message("MHD artificial_dissipation_constant = %g",
           mhd->artificial_dissipation_constant);
   message("MHD artificial_dissipation_minimum = %g",
@@ -171,7 +175,7 @@ static INLINE void mhd_print(
   message("MHD artificial_dissipation_timescale = %g",
           mhd->artificial_dissipation_timescale);
 
-  if (mhd->div_B_cleaning) {
+  if (mhd->with_div_B_cleaning) {
     message("MHD is running with divB cleaning ON.");
     message("MHD div_B_parabolic_sigma = %g",
             mhd->div_B_parabolic_sigma);
@@ -187,10 +191,10 @@ static INLINE void mhd_print(
  * @brief Prints the MHD information to the snapshot when writing.
  *
  * @param h_grpsph: the SPH group in the ICs to write attributes to.
- * @param mhd: pointer to the mhd_global_data struct.
+ * @param mhd: pointer to the mhd_builtin_global_data struct.
  **/
-static INLINE void mhd_print_snapshot(
-    hid_t h_grpsph, const struct mhd_global_data* mhd) {
+static INLINE void mhd_builtin_print_snapshot(
+    hid_t h_grpsph, const struct mhd_builtin_global_data* mhd) {
 
   io_write_attribute_f(
     h_grpsph, "Artificial dissipation constant", 
