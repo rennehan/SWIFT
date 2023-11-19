@@ -47,7 +47,7 @@
 /* Cosmology default beta=3.0.
  * Alpha can be set in the parameter file.
  * Beta is defined as in e.g. Price (2010) Eqn (103) */
-#ifdef WITH_MHD
+#ifdef MHD_BUILTIN_ENABLED
 #define const_viscosity_beta 2.0f
 #else
 #define const_viscosity_beta 3.0f
@@ -67,7 +67,7 @@
 
 /* Structs that store the relevant variables */
 
-#ifdef WITH_MHD
+#ifdef MHD_BUILTIN_ENABLED
 struct mhd_builtin_global_data {
   float artificial_dissipation_constant;
   float artificial_dissipation_minimum;
@@ -96,7 +96,7 @@ struct swift_params;
 struct phys_const;
 struct unit_system;
 
-#ifdef WITH_MHD
+#ifdef MHD_BUILTIN_ENABLED
 /**
  * @brief Initialises the MHD parameters in the struct from
  *        the parameter file, or sets them to defaults.

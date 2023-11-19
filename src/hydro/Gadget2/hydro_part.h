@@ -103,7 +103,7 @@ struct part {
   /* Particle predicted velocity. */
   float v[3];
 
-#ifdef WITH_MHD
+#ifdef MHD_BUILTIN_ENABLED
   /* Predicted comoving magnetic field */
   float B[3];
 

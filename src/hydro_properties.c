@@ -165,7 +165,7 @@ void hydro_props_init(struct hydro_props *p,
   /* Same for the thermal diffusion parameters */
   diffusion_init(params, us, phys_const, &(p->diffusion));
 
-#ifdef WITH_MHD
+#ifdef MHD_BUILTIN_ENABLED
   mhd_builtin_init(params, us, phys_const, &(p->mhd));
 #endif
 
@@ -275,7 +275,7 @@ void hydro_props_print(const struct hydro_props *p) {
   /* Same for the diffusion */
   diffusion_print(&(p->diffusion));
 
-#ifdef WITH_MHD
+#ifdef MHD_BUILTIN_ENABLED
   mhd_builtin_print(&(p->mhd));
 #endif
 
@@ -346,7 +346,7 @@ void hydro_props_print_snapshot(hid_t h_grpsph, const struct hydro_props *p) {
   /* Same for the diffusion */
   diffusion_print_snapshot(h_grpsph, &(p->diffusion));
 
-#ifdef WITH_MHD
+#ifdef MHD_BUILTIN_ENABLED
   mhd_builtin_print_snapshot(h_grpsph, &(p->mhd));
 #endif
 }
@@ -394,7 +394,7 @@ void hydro_props_init_no_hydro(struct hydro_props *p) {
   /* Same for the diffusion */
   diffusion_init_no_hydro(&(p->diffusion));
 
-#ifdef WITH_MHD
+#ifdef MHD_BUILTIN_ENABLED
   mhd_builtin_init_no_hydro(&(p->mhd));
 #endif
 }

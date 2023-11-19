@@ -2041,16 +2041,16 @@ case "$with_hydro" in
    ;;
 esac
 
-# Check if expensive debugging is on.
+# Check if we are using built-in MHD rather than separate modules
 AC_ARG_ENABLE([mhd],
    [AS_HELP_STRING([--enable-mhd],
-     [Activate magnetohydrodynamics calculations @<:@yes/no@:>@]
+     [Activate built-in magnetohydrodynamics calculations @<:@yes/no@:>@]
    )],
    [enable_mhd="$enableval"],
    [enable_mhd="no"]
 )
 if test "$enable_mhd" = "yes"; then
-   AC_DEFINE([WITH_MHD],1,[Enable magnetohydrodynamics calculations])
+   AC_DEFINE([MHD_BUILTIN_ENABLED],1,[Enable built-in magnetohydrodynamics calculations])
 fi
 
 # SPMHD scheme.
