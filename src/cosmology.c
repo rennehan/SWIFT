@@ -1583,7 +1583,7 @@ void cosmology_clean(struct cosmology *c) {
   swift_free("cosmo.table", c->drift_fac_interp_table);
   swift_free("cosmo.table", c->grav_kick_fac_interp_table);
   swift_free("cosmo.table", c->hydro_kick_fac_interp_table);
-  swift_free("cosmo.table", c->mhd_kick_interp_table);
+  swift_free("cosmo.table", c->mhd_kick_fac_interp_table);
   swift_free("cosmo.table", c->hydro_kick_corr_interp_table);
   swift_free("cosmo.table", c->time_interp_table);
   swift_free("cosmo.table", c->scale_factor_interp_table);
