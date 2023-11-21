@@ -862,9 +862,41 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   /* Are the particles moving towards each others ? */
   const float omega_ij = min(dvdr_Hubble, 0.f);
   const float mu_ij = fac_mu * r_inv * omega_ij; /* This is 0 or negative */
+  const float beta = const_viscosity_beta;
 
   /* Signal velocity */
-  const float v_sig = signal_velocity(dx, pi, pj, mu_ij, const_viscosity_beta);
+#ifdef MHD_BUILTIN_ENABLED
+  const float B_dot_r_i = (pi->B[0] * dx[0] + 
+                           pi->B[1] * dx[1] + 
+                           pi->B[2] * dx[2]) / r;
+  const float B_dot_r2_i = B_dot_r_i * B_dot_r_i;
+  const float soundspeed_i2 = pi->force.soundspeed * pi->force.soundspeed;
+  const float term_A_i = pi->Alfven_speed * pi->Alfven_speed +
+                         soundspeed_i2;
+  const float term_B_i = term_A_i * term_A_i - 
+                         4.0 * soundspeed_i2 * B_dot_r2_i / rhoi;
+  const float magnetic_signal_vel_i
+      = sqrt(0.5 * (term_A_i + sqrt(max(term_B_i, 0.0))));
+
+  const float B_dot_r_j = (pj->B[0] * dx[0] +
+                           pj->B[1] * dx[1] +
+                           pj->B[2] * dx[2]) / r;
+  const float B_dot_r2_j = B_dot_r_j * B_dot_r_j;
+  const float soundspeed_j2 = pj->force.soundspeed * pj->force.soundspeed;
+  /* Price 2012 Eq. 132, first term in sqrt */
+  const float term_A_j = pj->Alfven_speed * pj->Alfven_speed +
+                         soundspeed_j2;
+  /* Price 2012 Eq. 132, second term in sqrt */
+  const float term_B_j = term_A_j * term_A_j - 
+                         4.0 * soundspeed_j2 * B_dot_r2_j / rhoj;
+  const float magnetic_signal_vel_j
+      = sqrt(0.5 * (term_A_j + sqrt(max(term_B_j, 0.0))));
+
+  const float v_sig = magnetic_signal_vel_i + magnetic_signal_vel_j - beta * mu_ij;
+#else
+  /* Signal velocity */
+  const float v_sig = signal_velocity(dx, pi, pj, mu_ij, beta);
+#endif
 
   /* Now construct the full viscosity term */
   const float rho_ij = 0.5f * (rhoi + rhoj);
@@ -874,14 +906,65 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float visc_term = 0.5f * visc * (wi_dr + wj_dr) * r_inv;
   const float sph_term =
       (f_i * P_over_rho2_i * wi_dr + f_j * P_over_rho2_j * wj_dr) * r_inv;
+  float mhd_term[3] = {0.f};
+  float mhd_correction_i[3] = {0.f};
+
+#ifdef MHD_BUILTIN_ENABLED
+  /* eta for artificial magnetic dissipation */
+  const float eta = 0.5f * (pi->B_alpha + pj->B_alpha) * r;
+
+  const float dB[3] = {pi->B[0] - pj->B[0],
+                       pi->B[1] - pj->B[1],
+                       pi->B[2] - pj->B[2]};
+
+  const float B_i2 = pi->B[0] * pi->B[0] +
+                     pi->B[1] * pi->B[1] +
+                     pi->B[2] * pi->B[2];
+  const float B_j2 = pj->B[0] * pj->B[0] +
+                     pj->B[1] * pj->B[1] +
+                     pj->B[2] * pj->B[2];
+
+  /* Price 2012 Eq. 116 */
+  float S_kl_i[3][3];
+  float S_kl_j[3][3];
+  int k, l;
+  for (k = 0; k < 3; k++) {
+    for (l = 0; l < 3; l++) {
+      S_kl_i[k][l] = pi->B[k] * pi->B[l];
+      S_kl_j[k][l] = pj->B[k] * pj->B[l];
+    }
+
+    S_kl_i[k][k] -= 0.5 * B_i2;
+    S_kl_j[k][k] -= 0.5 * B_j2;
+  }
+
+  const float weight_term_i = mi * r_inv * wj_dr / (rhoi * rhoi);
+  const float weight_term_j = mj * r_inv * wi_dr / (rhoj * rhoj);
+
+  const float magnetic_correction_factor =
+      (pi->B[0] * weight_term_i + pj->B[0] * weight_term_j) * dx[0] +
+      (pi->B[1] * weight_term_i + pj->B[2] * weight_term_j) * dx[1] +
+      (pi->B[2] * weight_term_i + pj->B[2] * weight_term_j) * dx[2];
+
+  mhd_correction_i[0] = pi->B[0] * magnetic_correction_factor;
+  mhd_correction_i[1] = pi->B[1] * magnetic_correction_factor;
+  mhd_correction_i[2] = pi->B[2] * magnetic_correction_factor;
+
+  for (k = 0; k < 3; k++) {
+    for (l = 0; l < 3; l++) {
+      mhd_term[k] += (S_kl_i[k][l] * weight_term_i + 
+                      S_kl_j[k][l] * weight_term_j) * dx[k];
+    }
+  }
+#endif
 
   /* Eventually got the acceleration */
   const float acc = visc_term + sph_term;
 
   /* Use the force Luke ! */
-  pi->a_hydro[0] -= mj * acc * dx[0];
-  pi->a_hydro[1] -= mj * acc * dx[1];
-  pi->a_hydro[2] -= mj * acc * dx[2];
+  pi->a_hydro[0] -= mj * acc * dx[0] - mhd_term[0] + mhd_correction_i[0];
+  pi->a_hydro[1] -= mj * acc * dx[1] - mhd_term[1] + mhd_correction_i[1];
+  pi->a_hydro[2] -= mj * acc * dx[2] - mhd_term[2] + mhd_correction_i[2];
 
   /* Get the time derivative for h. */
   pi->force.h_dt -= mj * dvdr * r_inv / rhoj * wi_dr;
@@ -891,6 +974,37 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* Change in entropy */
   pi->entropy_dt += mj * visc_term * dvdr_Hubble;
+
+#ifdef MHD_BUILTIN_ENABLED
+  const float dB2 = dB[0] * dB[0] +
+                    dB[1] * dB[1] +
+                    dB[2] * dB[2];
+  const float dentropy_dt_abs = 0.5f * eta * dB2;
+
+  /* Change in entropy due to artificial magnetic dissipation */
+  pi->entropy_dt -= dentropy_dt_abs;
+
+  /* Compute dv dot r. */
+  const float dv_dr[3] = {(pi->v[0] - pj->v[0]) * dx[0],
+                          (pi->v[1] - pj->v[1]) * dx[1],
+                          (pi->v[2] - pj->v[2]) * dx[2]};
+
+  pi->DB_Dt[0] += (pi->B[0] * dv_dr[1] - pi->B[1] * dv_dr[0]) * dx[1] +
+               (pi->B[0] * dv_dr[2] - pi->B[2] * dv_dr[0]) * dx[2];
+  pi->DB_Dt[1] += (pi->B[1] * dv_dr[2] - pi->B[2] * dv_dr[1]) * dx[2] +
+               (pi->B[1] * dv_dr[0] - pi->B[0] * dv_dr[1]) * dx[0];
+  pi->DB_Dt[2] += (pi->B[2] * dv_dr[0] - pi->B[0] * dv_dr[2]) * dx[0] +
+                  (pi->B[2] * dv_dr[1] - pi->B[1] * dv_dr[2]) * dx[1];
+
+  pi->DB_Dt[0] *= mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[1] *= mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[2] *= mi * r_inv * wj_dr / rhoi;
+
+  /* Artificial dissipation */
+  pi->DB_Dt[0] += eta * dB[0] * mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[1] += eta * dB[1] * mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[2] += eta * dB[2] * mi * r_inv * wj_dr / rhoi;
+#endif
 
 #ifdef DEBUG_INTERACTIONS_SPH
   /* Update ngb counters */
