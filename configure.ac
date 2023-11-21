@@ -3055,7 +3055,8 @@ AC_MSG_RESULT([
    Adiabatic index    : $with_gamma
    Riemann solver     : $with_riemann
    SPMHD scheme       : $with_spmhd
-
+   MHD built-in       : $enable_mhd
+  
    Gravity scheme      : $with_gravity
    Multipole order     : $with_multipole_order
    Compute potential   : $enable_gravitational_potential
