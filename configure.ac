@@ -2053,6 +2053,18 @@ if test "$enable_mhd" = "yes"; then
    AC_DEFINE([MHD_BUILTIN_ENABLED],1,[Enable built-in magnetohydrodynamics calculations])
 fi
 
+# Check if expensive debugging is on.
+AC_ARG_ENABLE([mhd-debugging-checks],
+   [AS_HELP_STRING([--enable-mhd-debugging-checks],
+     [Activate expensive consistency checks @<:@yes/no@:>@]
+   )],
+   [enable_mhd_debugging_checks="$enableval"],
+   [enable_mhd_debugging_checks="no"]
+)
+if test "$enable_mhd_debugging_checks" = "yes"; then
+   AC_DEFINE([MHD_BUILTIN_DEBUG_CHECKS],1,[Enable expensive MHD debugging])
+fi
+
 # SPMHD scheme.
 AC_ARG_WITH([spmhd],
    [AS_HELP_STRING([--with-spmhd=<scheme>],

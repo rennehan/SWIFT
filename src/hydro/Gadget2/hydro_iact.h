@@ -698,6 +698,19 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
                       S_kl_j[k][l] * weight_term_j) * dx[k];
     }
   }
+
+#ifdef MHD_BUILTIN_DEBUG_CHECKS
+  if (pi->B[1] != pj->B[1]) {
+    message("MHD_BUILTIN: i=%lld j=%lld, Byi=%g Byj=%g, "
+            "mhd_term[0]=%g, mhd_term[1]=%g, mhd_term[2]=%g, "
+            "magnetic_correction_factor=%g, "
+            "eta=%g",
+            pi->id, pj->id, pi->B[1], pj->B[2],
+            mhd_term[0], mhd_term[1], mhd_term[2],
+            magnetic_correction_factor,
+            eta);
+  }
+#endif
 #endif
 
   /* Eventually got the acceleration */
