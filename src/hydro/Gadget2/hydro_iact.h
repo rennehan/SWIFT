@@ -710,7 +710,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
             magnetic_correction_factor,
             eta);
   } else {
-    message("MHD_BUILTIN: (same) i=%lld j=%lld, Byi=%g Byj=%g");
+    message("MHD_BUILTIN: (same) i=%lld j=%lld, Byi=%g Byj=%g",
+            pi->id, pj->id, pi->B[1], pj->B[1]);
   }
 #endif
 #endif
@@ -983,7 +984,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
             magnetic_correction_factor,
             eta);
   } else {
-    message("MHD_BUILTIN: (same) i=%lld j=%lld, Byi=%g Byj=%g");
+    message("MHD_BUILTIN: (same) i=%lld j=%lld, Byi=%g Byj=%g",
+            pi->id, pj->id, pi->B[1], pj->B[1]);
   }
 #endif
 #endif
