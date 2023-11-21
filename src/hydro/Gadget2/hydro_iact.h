@@ -649,7 +649,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
 #ifdef MHD_BUILTIN_ENABLED
   /* eta for artificial magnetic dissipation */
-  const float eta = 0.5f * (pi->B_alpha + pj->B_alpha) * r;
+  const float eta = 0.f; //0.5f * (pi->B_alpha + pj->B_alpha) * r;
 
   const float dB[3] = {pi->B[0] - pj->B[0],
                        pi->B[1] - pj->B[1],
@@ -676,8 +676,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
     S_kl_j[k][k] -= 0.5 * B_j2;
   }
 
-  const float weight_term_i = mi * r_inv * wj_dr / (rhoi * rhoi);
-  const float weight_term_j = mj * r_inv * wi_dr / (rhoj * rhoj);
+  const float weight_term_i = f_i * mj * r_inv * wi_dr / (rhoi * rhoi);
+  const float weight_term_j = f_j * mi * r_inv * wj_dr / (rhoj * rhoj);
 
   const float magnetic_correction_factor =
       (pi->B[0] * weight_term_i + pj->B[0] * weight_term_j) * dx[0] +
@@ -745,7 +745,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float dB2 = dB[0] * dB[0] +
                     dB[1] * dB[1] +
                     dB[2] * dB[2];
-  const float dentropy_dt_abs = 0.5f * eta * dB2;
+  const float dentropy_dt_abs = 0.5f * mj * eta * dB2 / rho_ij;
 
   /* Change in entropy due to artificial magnetic dissipation */
   pi->entropy_dt -= dentropy_dt_abs;
@@ -763,9 +763,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   pi->DB_Dt[2] += (pi->B[2] * dv_dr[0] - pi->B[0] * dv_dr[2]) * dx[0] +
                   (pi->B[2] * dv_dr[1] - pi->B[1] * dv_dr[2]) * dx[1];
 
-  pi->DB_Dt[0] *= mi * r_inv * wj_dr / rhoi;
-  pi->DB_Dt[1] *= mi * r_inv * wj_dr / rhoi;
-  pi->DB_Dt[2] *= mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[0] *= f_i * mj * r_inv * wi_dr / rhoi;
+  pi->DB_Dt[1] *= f_i * mj * r_inv * wi_dr / rhoi;
+  pi->DB_Dt[2] *= f_i * mj * r_inv * wi_dr / rhoi;
 
   pj->DB_Dt[0] += (pj->B[0] * dv_dr[1] - pj->B[1] * dv_dr[0]) * dx[1] +
                (pj->B[0] * dv_dr[2] - pj->B[2] * dv_dr[0]) * dx[2];
@@ -774,18 +774,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   pj->DB_Dt[2] += (pj->B[2] * dv_dr[0] - pj->B[0] * dv_dr[2]) * dx[0] +
                   (pj->B[2] * dv_dr[1] - pj->B[1] * dv_dr[2]) * dx[1];
 
-  pj->DB_Dt[0] *= mj * r_inv * wi_dr / rhoj;
-  pj->DB_Dt[1] *= mj * r_inv * wi_dr / rhoj;
-  pj->DB_Dt[2] *= mj * r_inv * wi_dr / rhoj;
+  pj->DB_Dt[0] *= f_j * mi * r_inv * wj_dr / rhoj;
+  pj->DB_Dt[1] *= f_j * mi * r_inv * wj_dr / rhoj;
+  pj->DB_Dt[2] *= f_j * mi * r_inv * wj_dr / rhoj;
 
   /* Artificial dissipation */
-  pi->DB_Dt[0] += eta * dB[0] * mi * r_inv * wj_dr / rhoi;
-  pi->DB_Dt[1] += eta * dB[1] * mi * r_inv * wj_dr / rhoi;
-  pi->DB_Dt[2] += eta * dB[2] * mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[0] += rhoi * (eta * dB[0] * mj * r_inv * wi_dr / rho_ij);
+  pi->DB_Dt[1] += rhoi * (eta * dB[1] * mj * r_inv * wi_dr / rho_ij);
+  pi->DB_Dt[2] += rhoi * (eta * dB[2] * mj * r_inv * wi_dr / rho_ij);
 
-  pj->DB_Dt[0] += eta * dB[0] * mj * r_inv * wi_dr / rhoj;
-  pj->DB_Dt[1] += eta * dB[1] * mj * r_inv * wi_dr / rhoj;
-  pj->DB_Dt[2] += eta * dB[2] * mj * r_inv * wi_dr / rhoj;
+  pj->DB_Dt[0] -= rhoj * (eta * dB[0] * mi * r_inv * wj_dr / rho_ij);
+  pj->DB_Dt[1] -= rhoj * (eta * dB[1] * mi * r_inv * wj_dr / rho_ij);
+  pj->DB_Dt[2] -= rhoj * (eta * dB[2] * mi * r_inv * wj_dr / rho_ij);
 #endif
 
 #ifdef DEBUG_INTERACTIONS_SPH
@@ -927,7 +927,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
 #ifdef MHD_BUILTIN_ENABLED
   /* eta for artificial magnetic dissipation */
-  const float eta = 0.5f * (pi->B_alpha + pj->B_alpha) * r;
+  const float eta = 0.f; //0.5f * (pi->B_alpha + pj->B_alpha) * r;
 
   const float dB[3] = {pi->B[0] - pj->B[0],
                        pi->B[1] - pj->B[1],
@@ -954,8 +954,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
     S_kl_j[k][k] -= 0.5 * B_j2;
   }
 
-  const float weight_term_i = mi * r_inv * wj_dr / (rhoi * rhoi);
-  const float weight_term_j = mj * r_inv * wi_dr / (rhoj * rhoj);
+  const float weight_term_i = f_i * mj * r_inv * wi_dr / (rhoi * rhoi);
+  const float weight_term_j = f_j * mi * r_inv * wj_dr / (rhoj * rhoj);
 
   const float magnetic_correction_factor =
       (pi->B[0] * weight_term_i + pj->B[0] * weight_term_j) * dx[0] +
@@ -1028,14 +1028,14 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   pi->DB_Dt[2] += (pi->B[2] * dv_dr[0] - pi->B[0] * dv_dr[2]) * dx[0] +
                   (pi->B[2] * dv_dr[1] - pi->B[1] * dv_dr[2]) * dx[1];
 
-  pi->DB_Dt[0] *= mi * r_inv * wj_dr / rhoi;
-  pi->DB_Dt[1] *= mi * r_inv * wj_dr / rhoi;
-  pi->DB_Dt[2] *= mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[0] *= f_i * mj * r_inv * wi_dr / rhoi;
+  pi->DB_Dt[1] *= f_i * mj * r_inv * wi_dr / rhoi;
+  pi->DB_Dt[2] *= f_i * mj * r_inv * wi_dr / rhoi;
 
   /* Artificial dissipation */
-  pi->DB_Dt[0] += eta * dB[0] * mi * r_inv * wj_dr / rhoi;
-  pi->DB_Dt[1] += eta * dB[1] * mi * r_inv * wj_dr / rhoi;
-  pi->DB_Dt[2] += eta * dB[2] * mi * r_inv * wj_dr / rhoi;
+  pi->DB_Dt[0] += rhoi * eta * dB[0] * mj * r_inv * wi_dr / rho_ij;
+  pi->DB_Dt[1] += rhoi * eta * dB[1] * mj * r_inv * wi_dr / rho_ij;
+  pi->DB_Dt[2] += rhoi * eta * dB[2] * mj * r_inv * wi_dr / rho_ij;
 #endif
 
 #ifdef DEBUG_INTERACTIONS_SPH
