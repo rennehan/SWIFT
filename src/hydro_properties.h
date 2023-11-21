@@ -134,11 +134,11 @@ struct hydro_props {
   /* ------ MHD properties ------------------------- */
 
 #ifdef MHD_BUILTIN_ENABLED
-  struct mhd_builtin_global_data mhd;
-#else
+  struct mhd_builtin_global_data mhd_builtin;
+#endif
+
   /*! MHD parameters */
   struct mhd_global_data mhd;
-#endif
 };
 
 void hydro_props_print(const struct hydro_props *p);
