@@ -125,7 +125,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pj->density.rot_v[2] += facj * curlvr[2];
 
 #ifdef MHD_BUILTIN_ENABLED
-  /* Recall: B_ours is B_real / sqrt(4 * pi) */
   double dB[3], curlBr[3];
   
   /* Compute dB dot r */
@@ -229,7 +228,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   pi->density.rot_v[2] += fac * curlvr[2];
 
 #ifdef MHD_BUILTIN_ENABLED
-  /* Recall: B_ours is B_real / sqrt(4 * pi) */
   double dB[3], curlBr[3];
 
   /* Compute dB dot r */

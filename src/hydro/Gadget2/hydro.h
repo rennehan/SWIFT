@@ -574,7 +574,6 @@ __attribute__((always_inline)) INLINE static void hydro_end_density(
   /* Finish calculation of the (physical) velocity divergence */
   p->div_B *= h_inv_dim_plus_one * a_inv2 * rho_inv;
 
-  /* Recall: B_ours = B_real / sqrt(4 * pi) */
   const float B_magnitude2 = p->B[0] * p->B[0] +
                              p->B[1] * p->B[1] + 
                              p->B[2] * p->B[2];

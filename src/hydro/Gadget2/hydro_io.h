@@ -128,6 +128,8 @@ INLINE static void convert_part_vel(const struct engine* e,
     dt_kick_mhd = (ti_current - ((ti_beg + ti_end) / 2)) * time_base;
   }
 
+  /* D. Rennehan: MHD term & correction are in a_hydro */
+  
   /* Extrapolate the velocites to the current time (hydro term)*/
   ret[0] = xp->v_full[0] + p->a_hydro[0] * dt_kick_hydro;
   ret[1] = xp->v_full[1] + p->a_hydro[1] * dt_kick_hydro;
@@ -151,10 +153,6 @@ INLINE static void convert_part_vel(const struct engine* e,
   ret[0] *= cosmo->a_inv;
   ret[1] *= cosmo->a_inv;
   ret[2] *= cosmo->a_inv;
-
-#ifdef MHD_BUILTIN_ENABLED
-
-#endif
 }
 
 INLINE static void convert_part_potential(const struct engine* e,
@@ -273,7 +271,7 @@ INLINE static void hydro_write_flavour(hid_t h_grpsph) {
 
 #ifdef MHD_BUILTIN_ENABLED
   io_write_attribute_s(
-      h_grpsph, "Magnetichydrodynamics Model",
+      h_grpsph, "Magnetohydrodynamics Model",
       "as in Price (2012)");
 #endif
 }
