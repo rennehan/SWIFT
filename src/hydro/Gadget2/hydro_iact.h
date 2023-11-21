@@ -705,9 +705,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* TODO: Check sign of the magnetic term and correction */
   /* Use the force Luke ! */
-  pi->a_hydro[0] -= mj * acc * dx[0] - mhd_term[0] + mhd_correction_i[0];
-  pi->a_hydro[1] -= mj * acc * dx[1] - mhd_term[0] + mhd_correction_i[0];
-  pi->a_hydro[2] -= mj * acc * dx[2] - mhd_term[0] + mhd_correction_i[0];
+  pi->a_hydro[0] -= mj * acc * dx[0] + mhd_term[0] - mhd_correction_i[0];
+  pi->a_hydro[1] -= mj * acc * dx[1] + mhd_term[0] - mhd_correction_i[0];
+  pi->a_hydro[2] -= mj * acc * dx[2] + mhd_term[0] - mhd_correction_i[0];
 
   pj->a_hydro[0] += mi * acc * dx[0] + mhd_term[0] - mhd_correction_j[0];
   pj->a_hydro[1] += mi * acc * dx[1] + mhd_term[0] - mhd_correction_j[0];
@@ -865,7 +865,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   /* Signal velocity */
 #ifdef MHD_BUILTIN_ENABLED
   const float mi = pi->mass;
-  
+
   const float B_dot_r_i = (pi->B[0] * dx[0] + 
                            pi->B[1] * dx[1] + 
                            pi->B[2] * dx[2]) / r;
@@ -962,9 +962,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float acc = visc_term + sph_term;
 
   /* Use the force Luke ! */
-  pi->a_hydro[0] -= mj * acc * dx[0] - mhd_term[0] + mhd_correction_i[0];
-  pi->a_hydro[1] -= mj * acc * dx[1] - mhd_term[1] + mhd_correction_i[1];
-  pi->a_hydro[2] -= mj * acc * dx[2] - mhd_term[2] + mhd_correction_i[2];
+  pi->a_hydro[0] -= mj * acc * dx[0] + mhd_term[0] - mhd_correction_i[0];
+  pi->a_hydro[1] -= mj * acc * dx[1] + mhd_term[1] - mhd_correction_i[1];
+  pi->a_hydro[2] -= mj * acc * dx[2] + mhd_term[2] - mhd_correction_i[2];
 
   /* Get the time derivative for h. */
   pi->force.h_dt -= mj * dvdr * r_inv / rhoj * wi_dr;
