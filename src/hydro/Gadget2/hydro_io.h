@@ -59,7 +59,7 @@ INLINE static void hydro_read_particles(struct part* parts,
   list += *num_fields;
   *num_fields += 1;
 
-  list[8] = io_make_input_field("MagneticField", FLOAT, 3, COMPULSORY,
+  list[0] = io_make_input_field("MagneticField", FLOAT, 3, COMPULSORY,
                                 UNIT_CONV_MAGNETIC_FIELD, parts, B);
 #endif
 }
@@ -228,11 +228,11 @@ INLINE static void hydro_write_particles(const struct part* parts,
   list += *num_fields;
   *num_fields += 2;
 
-  list[10] = io_make_output_field("MagneticFields", FLOAT, 3,
+  list[0] = io_make_output_field("MagneticFields", FLOAT, 3,
       UNIT_CONV_MAGNETIC_FIELD, 2.f, parts, B,
       "Co-moving magnetic fields of the particles");
 
-  list[11] = io_make_output_field("MagneticDivergences", FLOAT, 1,
+  list[1] = io_make_output_field("MagneticDivergences", FLOAT, 1,
       UNIT_CONV_MAGNETIC_DIVERGENCE, 1.f, parts, div_B,
       "Co-moving magnetic divergences of the particles.");
 #endif
