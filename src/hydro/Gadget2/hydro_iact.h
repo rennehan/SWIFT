@@ -864,6 +864,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* Signal velocity */
 #ifdef MHD_BUILTIN_ENABLED
+  const float mi = pi->mass;
+  
   const float B_dot_r_i = (pi->B[0] * dx[0] + 
                            pi->B[1] * dx[1] + 
                            pi->B[2] * dx[2]) / r;
