@@ -719,15 +719,14 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   /* Eventually got the acceleration */
   const float acc = visc_term + sph_term;
 
-  /* TODO: Check sign of the magnetic term and correction */
   /* Use the force Luke ! */
-  pi->a_hydro[0] -= mj * acc * dx[0] + mhd_term[0] - mhd_correction_i[0];
-  pi->a_hydro[1] -= mj * acc * dx[1] + mhd_term[0] - mhd_correction_i[0];
-  pi->a_hydro[2] -= mj * acc * dx[2] + mhd_term[0] - mhd_correction_i[0];
+  pi->a_hydro[0] -= mj * acc * dx[0] + mhd_term[0] + mhd_correction_i[0];
+  pi->a_hydro[1] -= mj * acc * dx[1] + mhd_term[1] + mhd_correction_i[1];
+  pi->a_hydro[2] -= mj * acc * dx[2] + mhd_term[2] + mhd_correction_i[2];
 
-  pj->a_hydro[0] += mi * acc * dx[0] + mhd_term[0] - mhd_correction_j[0];
-  pj->a_hydro[1] += mi * acc * dx[1] + mhd_term[0] - mhd_correction_j[0];
-  pj->a_hydro[2] += mi * acc * dx[2] + mhd_term[0] - mhd_correction_j[0];
+  pj->a_hydro[0] += mi * acc * dx[0] - mhd_term[0] - mhd_correction_j[0];
+  pj->a_hydro[1] += mi * acc * dx[1] - mhd_term[1] - mhd_correction_j[1];
+  pj->a_hydro[2] += mi * acc * dx[2] - mhd_term[2] - mhd_correction_j[2];
 
   /* Get the time derivative for h. */
   pi->force.h_dt -= mj * dvdr * r_inv / rhoj * wi_dr;
@@ -751,28 +750,36 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   pi->entropy_dt -= dentropy_dt_abs;
   pj->entropy_dt -= dentropy_dt_abs; 
 
-  /* Compute dv dot r. */
-  const float dv_dr[3] = {(pi->v[0] - pj->v[0]) * dx[0],
-                          (pi->v[1] - pj->v[1]) * dx[1],
-                          (pi->v[2] - pj->v[2]) * dx[2]};
+  /* Do everything separately so that the signs are treated correctly */
+  const float dv_i[3] = {pi->v[0] - pj->v[0],
+                         pi->v[1] - pj->v[1],
+                         pi->v[2] - pj->v[2]};
+  const float dv_j[3] = {pj->v[0] - pi->v[0],
+                         pj->v[1] - pi->v[1],
+                         pj->v[2] - pi->v[2]};
 
-  pi->DB_Dt[0] += (pi->B[0] * dv_dr[1] - pi->B[1] * dv_dr[0]) * dx[1] +
-               (pi->B[0] * dv_dr[2] - pi->B[2] * dv_dr[0]) * dx[2];
-  pi->DB_Dt[1] += (pi->B[1] * dv_dr[2] - pi->B[2] * dv_dr[1]) * dx[2] +
-               (pi->B[1] * dv_dr[0] - pi->B[0] * dv_dr[1]) * dx[0];
-  pi->DB_Dt[2] += (pi->B[2] * dv_dr[0] - pi->B[0] * dv_dr[2]) * dx[0] +
-                  (pi->B[2] * dv_dr[1] - pi->B[1] * dv_dr[2]) * dx[1];
+  pi->DB_Dt[0] -= (pi->B[0] * dv_i[1] - pi->B[1] * dv_i[0]) * dx[1] +
+               (pi->B[0] * dv_i[2] - pi->B[2] * dv_i[0]) * dx[2];
+  pi->DB_Dt[1] -= (pi->B[1] * dv_i[2] - pi->B[2] * dv_i[1]) * dx[2] +
+               (pi->B[1] * dv_i[0] - pi->B[0] * dv_i[1]) * dx[0];
+  pi->DB_Dt[2] -= (pi->B[2] * dv_i[0] - pi->B[0] * dv_i[2]) * dx[0] +
+                  (pi->B[2] * dv_i[1] - pi->B[1] * dv_i[2]) * dx[1];
 
   pi->DB_Dt[0] *= f_i * mj * r_inv * wi_dr / rhoi;
   pi->DB_Dt[1] *= f_i * mj * r_inv * wi_dr / rhoi;
   pi->DB_Dt[2] *= f_i * mj * r_inv * wi_dr / rhoi;
 
-  pj->DB_Dt[0] += (pj->B[0] * dv_dr[1] - pj->B[1] * dv_dr[0]) * dx[1] +
-               (pj->B[0] * dv_dr[2] - pj->B[2] * dv_dr[0]) * dx[2];
-  pj->DB_Dt[1] += (pj->B[1] * dv_dr[2] - pj->B[2] * dv_dr[1]) * dx[2] +
-               (pj->B[1] * dv_dr[0] - pj->B[0] * dv_dr[1]) * dx[0];
-  pj->DB_Dt[2] += (pj->B[2] * dv_dr[0] - pj->B[0] * dv_dr[2]) * dx[0] +
-                  (pj->B[2] * dv_dr[1] - pj->B[1] * dv_dr[2]) * dx[1];
+  /**
+   * Positive sign to flip dx, as it was computed from i -> j.
+   * dv_j is done j -> i so the functional form looks the same
+   * as the i -> j case above.
+   */
+  pj->DB_Dt[0] += (pj->B[0] * dv_j[1] - pj->B[1] * dv_j[0]) * dx[1] +
+               (pj->B[0] * dv_j[2] - pj->B[2] * dv_j[0]) * dx[2];
+  pj->DB_Dt[1] += (pj->B[1] * dv_j[2] - pj->B[2] * dv_j[1]) * dx[2] +
+               (pj->B[1] * dv_j[0] - pj->B[0] * dv_j[1]) * dx[0];
+  pj->DB_Dt[2] += (pj->B[2] * dv_j[0] - pj->B[0] * dv_j[2]) * dx[0] +
+                  (pj->B[2] * dv_j[1] - pj->B[1] * dv_j[2]) * dx[1];
 
   pj->DB_Dt[0] *= f_j * mi * r_inv * wj_dr / rhoj;
   pj->DB_Dt[1] *= f_j * mi * r_inv * wj_dr / rhoj;
@@ -994,9 +1001,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float acc = visc_term + sph_term;
 
   /* Use the force Luke ! */
-  pi->a_hydro[0] -= mj * acc * dx[0] + mhd_term[0] - mhd_correction_i[0];
-  pi->a_hydro[1] -= mj * acc * dx[1] + mhd_term[1] - mhd_correction_i[1];
-  pi->a_hydro[2] -= mj * acc * dx[2] + mhd_term[2] - mhd_correction_i[2];
+  pi->a_hydro[0] -= mj * acc * dx[0] + mhd_term[0] + mhd_correction_i[0];
+  pi->a_hydro[1] -= mj * acc * dx[1] + mhd_term[1] + mhd_correction_i[1];
+  pi->a_hydro[2] -= mj * acc * dx[2] + mhd_term[2] + mhd_correction_i[2];
 
   /* Get the time derivative for h. */
   pi->force.h_dt -= mj * dvdr * r_inv / rhoj * wi_dr;
@@ -1016,17 +1023,16 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   /* Change in entropy due to artificial magnetic dissipation */
   pi->entropy_dt -= dentropy_dt_abs;
 
-  /* Compute dv dot r. */
-  const float dv_dr[3] = {(pi->v[0] - pj->v[0]) * dx[0],
-                          (pi->v[1] - pj->v[1]) * dx[1],
-                          (pi->v[2] - pj->v[2]) * dx[2]};
+  const float dv[3] = {pi->v[0] - pj->v[0],
+                       pi->v[1] - pj->v[1],
+                       pi->v[2] - pj->v[2]};
 
-  pi->DB_Dt[0] += (pi->B[0] * dv_dr[1] - pi->B[1] * dv_dr[0]) * dx[1] +
-               (pi->B[0] * dv_dr[2] - pi->B[2] * dv_dr[0]) * dx[2];
-  pi->DB_Dt[1] += (pi->B[1] * dv_dr[2] - pi->B[2] * dv_dr[1]) * dx[2] +
-               (pi->B[1] * dv_dr[0] - pi->B[0] * dv_dr[1]) * dx[0];
-  pi->DB_Dt[2] += (pi->B[2] * dv_dr[0] - pi->B[0] * dv_dr[2]) * dx[0] +
-                  (pi->B[2] * dv_dr[1] - pi->B[1] * dv_dr[2]) * dx[1];
+  pi->DB_Dt[0] -= (pi->B[0] * dv[1] - pi->B[1] * dv[0]) * dx[1] +
+               (pi->B[0] * dv[2] - pi->B[2] * dv[0]) * dx[2];
+  pi->DB_Dt[1] -= (pi->B[1] * dv[2] - pi->B[2] * dv[1]) * dx[2] +
+               (pi->B[1] * dv[0] - pi->B[0] * dv[1]) * dx[0];
+  pi->DB_Dt[2] -= (pi->B[2] * dv[0] - pi->B[0] * dv[2]) * dx[0] +
+                  (pi->B[2] * dv[1] - pi->B[1] * dv[2]) * dx[1];
 
   pi->DB_Dt[0] *= f_i * mj * r_inv * wi_dr / rhoi;
   pi->DB_Dt[1] *= f_i * mj * r_inv * wi_dr / rhoi;
