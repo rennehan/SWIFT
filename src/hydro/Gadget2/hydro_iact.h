@@ -648,8 +648,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   float mhd_correction_j[3] = {0.f};
 
 #ifdef MHD_BUILTIN_ENABLED
+  const float avg_Alfven_speed
+      = 0.5f * sqrt(pi->Alfven_speed * pi->Alfven_speed +
+                    pj->Alfven_speed * pj->Alfven_speed);
+
   /* eta for artificial magnetic dissipation */
-  const float eta = 0.f; //0.5f * (pi->B_alpha + pj->B_alpha) * r;
+  const float eta = 0.5f * pi->B_alpha * avg_Alfven_speed * r;
 
   const float dB[3] = {pi->B[0] - pj->B[0],
                        pi->B[1] - pj->B[1],
@@ -724,9 +728,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   pi->a_hydro[1] -= mj * acc * dx[1] + mhd_term[1] + mhd_correction_i[1];
   pi->a_hydro[2] -= mj * acc * dx[2] + mhd_term[2] + mhd_correction_i[2];
 
-  pj->a_hydro[0] += mi * acc * dx[0] - mhd_term[0] - mhd_correction_j[0];
-  pj->a_hydro[1] += mi * acc * dx[1] - mhd_term[1] - mhd_correction_j[1];
-  pj->a_hydro[2] += mi * acc * dx[2] - mhd_term[2] - mhd_correction_j[2];
+  pj->a_hydro[0] += mi * acc * dx[0] + mhd_term[0] + mhd_correction_j[0];
+  pj->a_hydro[1] += mi * acc * dx[1] + mhd_term[1] + mhd_correction_j[1];
+  pj->a_hydro[2] += mi * acc * dx[2] + mhd_term[2] + mhd_correction_j[2];
 
   /* Get the time derivative for h. */
   pi->force.h_dt -= mj * dvdr * r_inv / rhoj * wi_dr;
@@ -744,11 +748,11 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float dB2 = dB[0] * dB[0] +
                     dB[1] * dB[1] +
                     dB[2] * dB[2];
-  const float dentropy_dt_abs = 0.5f * mj * eta * dB2 / rho_ij;
+  const float dentropy_dt_abs = eta * dB2;
 
   /* Change in entropy due to artificial magnetic dissipation */
-  pi->entropy_dt -= dentropy_dt_abs;
-  pj->entropy_dt -= dentropy_dt_abs; 
+  pi->entropy_dt -= weight_term_i * dentropy_dt_abs;
+  pj->entropy_dt -= weight_term_j * dentropy_dt_abs; 
 
   /* Do everything separately so that the signs are treated correctly */
   const float dv_i[3] = {pi->v[0] - pj->v[0],
@@ -765,9 +769,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float DB_Dt_z_i = (pi->B[2] * dv_i[0] - pi->B[0] * dv_i[2]) * dx[0] +
                           (pi->B[2] * dv_i[1] - pi->B[1] * dv_i[2]) * dx[1];
 
-  pi->DB_Dt[0] -= rhoi * weight_term_i * DB_Dt_x_i;
-  pi->DB_Dt[1] -= rhoi * weight_term_i * DB_Dt_y_i;
-  pi->DB_Dt[2] -= rhoi * weight_term_i * DB_Dt_z_i;
+  pi->DB_Dt[0] += rhoi * weight_term_i * DB_Dt_x_i;
+  pi->DB_Dt[1] += rhoi * weight_term_i * DB_Dt_y_i;
+  pi->DB_Dt[2] += rhoi * weight_term_i * DB_Dt_z_i;
 
   /**
    * Positive sign to flip dx, as it was computed from i -> j.
@@ -781,18 +785,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float DB_Dt_z_j = (pj->B[2] * dv_j[0] - pj->B[0] * dv_j[2]) * dx[0] +
                           (pj->B[2] * dv_j[1] - pj->B[1] * dv_j[2]) * dx[1];
 
-  pj->DB_Dt[0] += rhoj * weight_term_j * DB_Dt_x_j;
-  pj->DB_Dt[1] += rhoj * weight_term_j * DB_Dt_y_j;
-  pj->DB_Dt[2] += rhoj * weight_term_j * DB_Dt_z_j;
+  pj->DB_Dt[0] -= rhoj * weight_term_j * DB_Dt_x_j;
+  pj->DB_Dt[1] -= rhoj * weight_term_j * DB_Dt_y_j;
+  pj->DB_Dt[2] -= rhoj * weight_term_j * DB_Dt_z_j;
 
   /* Artificial dissipation */
-  pi->DB_Dt[0] += rhoi * (eta * dB[0] * mj * r_inv * wi_dr / rho_ij);
-  pi->DB_Dt[1] += rhoi * (eta * dB[1] * mj * r_inv * wi_dr / rho_ij);
-  pi->DB_Dt[2] += rhoi * (eta * dB[2] * mj * r_inv * wi_dr / rho_ij);
+  pi->DB_Dt[0] += weight_term_i * eta * dB[0];
+  pi->DB_Dt[1] += weight_term_i * eta * dB[1];
+  pi->DB_Dt[2] += weight_term_i * eta * dB[2];
 
-  pj->DB_Dt[0] -= rhoj * (eta * dB[0] * mi * r_inv * wj_dr / rho_ij);
-  pj->DB_Dt[1] -= rhoj * (eta * dB[1] * mi * r_inv * wj_dr / rho_ij);
-  pj->DB_Dt[2] -= rhoj * (eta * dB[2] * mi * r_inv * wj_dr / rho_ij);
+  pj->DB_Dt[0] -= weight_term_j * eta * dB[0];
+  pj->DB_Dt[1] -= weight_term_j * eta * dB[1];
+  pj->DB_Dt[2] -= weight_term_j * eta * dB[2];
 #endif
 
 #ifdef DEBUG_INTERACTIONS_SPH
@@ -933,8 +937,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   float mhd_correction_i[3] = {0.f};
 
 #ifdef MHD_BUILTIN_ENABLED
+  const float avg_Alfven_speed
+      = 0.5f * sqrt(pi->Alfven_speed * pi->Alfven_speed +
+                    pj->Alfven_speed * pj->Alfven_speed);
+
   /* eta for artificial magnetic dissipation */
-  const float eta = 0.f; //0.5f * (pi->B_alpha + pj->B_alpha) * r;
+  const float eta = 0.5f * pi->B_alpha * avg_Alfven_speed * r;
 
   const float dB[3] = {pi->B[0] - pj->B[0],
                        pi->B[1] - pj->B[1],
@@ -1018,10 +1026,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float dB2 = dB[0] * dB[0] +
                     dB[1] * dB[1] +
                     dB[2] * dB[2];
-  const float dentropy_dt_abs = 0.5f * eta * dB2;
+  const float dentropy_dt_abs = eta * dB2;
 
   /* Change in entropy due to artificial magnetic dissipation */
-  pi->entropy_dt -= dentropy_dt_abs;
+  pi->entropy_dt -= weight_term_i * dentropy_dt_abs;
 
   const float dv[3] = {pi->v[0] - pj->v[0],
                        pi->v[1] - pj->v[1],
@@ -1034,14 +1042,14 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float DB_Dt_z = (pi->B[2] * dv[0] - pi->B[0] * dv[2]) * dx[0] +
                         (pi->B[2] * dv[1] - pi->B[1] * dv[2]) * dx[1];
 
-  pi->DB_Dt[0] -= rhoi * weight_term_i * DB_Dt_x;
-  pi->DB_Dt[1] -= rhoi * weight_term_i * DB_Dt_y;
-  pi->DB_Dt[2] -= rhoi * weight_term_i * DB_Dt_z;
+  pi->DB_Dt[0] += rhoi * weight_term_i * DB_Dt_x;
+  pi->DB_Dt[1] += rhoi * weight_term_i * DB_Dt_y;
+  pi->DB_Dt[2] += rhoi * weight_term_i * DB_Dt_z;
 
   /* Artificial dissipation */
-  pi->DB_Dt[0] += rhoi * eta * dB[0] * mj * r_inv * wi_dr / rho_ij;
-  pi->DB_Dt[1] += rhoi * eta * dB[1] * mj * r_inv * wi_dr / rho_ij;
-  pi->DB_Dt[2] += rhoi * eta * dB[2] * mj * r_inv * wi_dr / rho_ij;
+  pi->DB_Dt[0] += weight_term_i * eta * dB[0];
+  pi->DB_Dt[1] += weight_term_i * eta * dB[1];
+  pi->DB_Dt[2] += weight_term_i * eta * dB[2];
 #endif
 
 #ifdef DEBUG_INTERACTIONS_SPH
