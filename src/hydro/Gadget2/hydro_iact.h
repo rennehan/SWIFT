@@ -663,8 +663,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
                      pj->B[2] * pj->B[2];
 
   /* Price 2012 Eq. 116 */
-  float S_kl_i[3][3];
-  float S_kl_j[3][3];
+  float S_kl_i[3][3] = {{0.f}};
+  float S_kl_j[3][3] = {{0.f}};
   int k, l;
   for (k = 0; k < 3; k++) {
     for (l = 0; l < 3; l++) {
@@ -672,8 +672,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
       S_kl_j[k][l] = pj->B[k] * pj->B[l];
     }
 
-    S_kl_i[k][k] -= 0.5 * B_i2;
-    S_kl_j[k][k] -= 0.5 * B_j2;
+    S_kl_i[k][k] -= 0.5f * B_i2;
+    S_kl_j[k][k] -= 0.5f * B_j2;
   }
 
   const float weight_term_i = f_i * mj * r_inv * wi_dr / (rhoi * rhoi);
@@ -681,7 +681,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   const float magnetic_correction_factor =
       (pi->B[0] * weight_term_i + pj->B[0] * weight_term_j) * dx[0] +
-      (pi->B[1] * weight_term_i + pj->B[2] * weight_term_j) * dx[1] +
+      (pi->B[1] * weight_term_i + pj->B[1] * weight_term_j) * dx[1] +
       (pi->B[2] * weight_term_i + pj->B[2] * weight_term_j) * dx[2];
 
   mhd_correction_i[0] = pi->B[0] * magnetic_correction_factor;
@@ -758,32 +758,32 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
                          pj->v[1] - pi->v[1],
                          pj->v[2] - pi->v[2]};
 
-  pi->DB_Dt[0] -= (pi->B[0] * dv_i[1] - pi->B[1] * dv_i[0]) * dx[1] +
-               (pi->B[0] * dv_i[2] - pi->B[2] * dv_i[0]) * dx[2];
-  pi->DB_Dt[1] -= (pi->B[1] * dv_i[2] - pi->B[2] * dv_i[1]) * dx[2] +
-               (pi->B[1] * dv_i[0] - pi->B[0] * dv_i[1]) * dx[0];
-  pi->DB_Dt[2] -= (pi->B[2] * dv_i[0] - pi->B[0] * dv_i[2]) * dx[0] +
-                  (pi->B[2] * dv_i[1] - pi->B[1] * dv_i[2]) * dx[1];
+  const float DB_Dt_x_i = (pi->B[0] * dv_i[1] - pi->B[1] * dv_i[0]) * dx[1] +
+                          (pi->B[0] * dv_i[2] - pi->B[2] * dv_i[0]) * dx[2];
+  const float DB_Dt_y_i = (pi->B[1] * dv_i[2] - pi->B[2] * dv_i[1]) * dx[2] +
+                          (pi->B[1] * dv_i[0] - pi->B[0] * dv_i[1]) * dx[0];
+  const float DB_Dt_z_i = (pi->B[2] * dv_i[0] - pi->B[0] * dv_i[2]) * dx[0] +
+                          (pi->B[2] * dv_i[1] - pi->B[1] * dv_i[2]) * dx[1];
 
-  pi->DB_Dt[0] *= f_i * mj * r_inv * wi_dr / rhoi;
-  pi->DB_Dt[1] *= f_i * mj * r_inv * wi_dr / rhoi;
-  pi->DB_Dt[2] *= f_i * mj * r_inv * wi_dr / rhoi;
+  pi->DB_Dt[0] -= rhoi * weight_term_i * DB_Dt_x_i;
+  pi->DB_Dt[1] -= rhoi * weight_term_i * DB_Dt_y_i;
+  pi->DB_Dt[2] -= rhoi * weight_term_i * DB_Dt_z_i;
 
   /**
    * Positive sign to flip dx, as it was computed from i -> j.
    * dv_j is done j -> i so the functional form looks the same
    * as the i -> j case above.
    */
-  pj->DB_Dt[0] += (pj->B[0] * dv_j[1] - pj->B[1] * dv_j[0]) * dx[1] +
-               (pj->B[0] * dv_j[2] - pj->B[2] * dv_j[0]) * dx[2];
-  pj->DB_Dt[1] += (pj->B[1] * dv_j[2] - pj->B[2] * dv_j[1]) * dx[2] +
-               (pj->B[1] * dv_j[0] - pj->B[0] * dv_j[1]) * dx[0];
-  pj->DB_Dt[2] += (pj->B[2] * dv_j[0] - pj->B[0] * dv_j[2]) * dx[0] +
-                  (pj->B[2] * dv_j[1] - pj->B[1] * dv_j[2]) * dx[1];
+  const float DB_Dt_x_j = (pj->B[0] * dv_j[1] - pj->B[1] * dv_j[0]) * dx[1] +
+                          (pj->B[0] * dv_j[2] - pj->B[2] * dv_j[0]) * dx[2];
+  const float DB_Dt_y_j = (pj->B[1] * dv_j[2] - pj->B[2] * dv_j[1]) * dx[2] +
+                          (pj->B[1] * dv_j[0] - pj->B[0] * dv_j[1]) * dx[0];
+  const float DB_Dt_z_j = (pj->B[2] * dv_j[0] - pj->B[0] * dv_j[2]) * dx[0] +
+                          (pj->B[2] * dv_j[1] - pj->B[1] * dv_j[2]) * dx[1];
 
-  pj->DB_Dt[0] *= f_j * mi * r_inv * wj_dr / rhoj;
-  pj->DB_Dt[1] *= f_j * mi * r_inv * wj_dr / rhoj;
-  pj->DB_Dt[2] *= f_j * mi * r_inv * wj_dr / rhoj;
+  pj->DB_Dt[0] += rhoj * weight_term_j * DB_Dt_x_j;
+  pj->DB_Dt[1] += rhoj * weight_term_j * DB_Dt_y_j;
+  pj->DB_Dt[2] += rhoj * weight_term_j * DB_Dt_z_j;
 
   /* Artificial dissipation */
   pi->DB_Dt[0] += rhoi * (eta * dB[0] * mj * r_inv * wi_dr / rho_ij);
@@ -948,8 +948,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
                      pj->B[2] * pj->B[2];
 
   /* Price 2012 Eq. 116 */
-  float S_kl_i[3][3];
-  float S_kl_j[3][3];
+  float S_kl_i[3][3] = {{0.f}};
+  float S_kl_j[3][3] = {{0.f}};
   int k, l;
   for (k = 0; k < 3; k++) {
     for (l = 0; l < 3; l++) {
@@ -957,8 +957,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
       S_kl_j[k][l] = pj->B[k] * pj->B[l];
     }
 
-    S_kl_i[k][k] -= 0.5 * B_i2;
-    S_kl_j[k][k] -= 0.5 * B_j2;
+    S_kl_i[k][k] -= 0.5f * B_i2;
+    S_kl_j[k][k] -= 0.5f * B_j2;
   }
 
   const float weight_term_i = f_i * mj * r_inv * wi_dr / (rhoi * rhoi);
@@ -966,7 +966,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   const float magnetic_correction_factor =
       (pi->B[0] * weight_term_i + pj->B[0] * weight_term_j) * dx[0] +
-      (pi->B[1] * weight_term_i + pj->B[2] * weight_term_j) * dx[1] +
+      (pi->B[1] * weight_term_i + pj->B[1] * weight_term_j) * dx[1] +
       (pi->B[2] * weight_term_i + pj->B[2] * weight_term_j) * dx[2];
 
   mhd_correction_i[0] = pi->B[0] * magnetic_correction_factor;
@@ -1027,16 +1027,16 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
                        pi->v[1] - pj->v[1],
                        pi->v[2] - pj->v[2]};
 
-  pi->DB_Dt[0] -= (pi->B[0] * dv[1] - pi->B[1] * dv[0]) * dx[1] +
-               (pi->B[0] * dv[2] - pi->B[2] * dv[0]) * dx[2];
-  pi->DB_Dt[1] -= (pi->B[1] * dv[2] - pi->B[2] * dv[1]) * dx[2] +
-               (pi->B[1] * dv[0] - pi->B[0] * dv[1]) * dx[0];
-  pi->DB_Dt[2] -= (pi->B[2] * dv[0] - pi->B[0] * dv[2]) * dx[0] +
-                  (pi->B[2] * dv[1] - pi->B[1] * dv[2]) * dx[1];
+  const float DB_Dt_x = (pi->B[0] * dv[1] - pi->B[1] * dv[0]) * dx[1] +
+                        (pi->B[0] * dv[2] - pi->B[2] * dv[0]) * dx[2];
+  const float DB_Dt_y = (pi->B[1] * dv[2] - pi->B[2] * dv[1]) * dx[2] +
+                        (pi->B[1] * dv[0] - pi->B[0] * dv[1]) * dx[0];
+  const float DB_Dt_z = (pi->B[2] * dv[0] - pi->B[0] * dv[2]) * dx[0] +
+                        (pi->B[2] * dv[1] - pi->B[1] * dv[2]) * dx[1];
 
-  pi->DB_Dt[0] *= f_i * mj * r_inv * wi_dr / rhoi;
-  pi->DB_Dt[1] *= f_i * mj * r_inv * wi_dr / rhoi;
-  pi->DB_Dt[2] *= f_i * mj * r_inv * wi_dr / rhoi;
+  pi->DB_Dt[0] -= rhoi * weight_term_i * DB_Dt_x;
+  pi->DB_Dt[1] -= rhoi * weight_term_i * DB_Dt_y;
+  pi->DB_Dt[2] -= rhoi * weight_term_i * DB_Dt_z;
 
   /* Artificial dissipation */
   pi->DB_Dt[0] += rhoi * eta * dB[0] * mj * r_inv * wi_dr / rho_ij;

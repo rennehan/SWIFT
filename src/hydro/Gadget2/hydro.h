@@ -856,6 +856,12 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
   p->entropy += p->entropy_dt * dt_therm;
 
 #ifdef MHD_BUILTIN_ENABLED
+#ifdef MHD_BUILTIN_DEBUG_CHECKS
+  message("MHD_BUILTIN: (before predict) B[0]=%g, B[1]=%g, B[2]=%g, "
+          "DtB[0]=%g, DtB[1]=%g, DtB[2]=%g, dt_mhd=%g",
+          p->B[0], p->B[1], p->B[2],
+          p->DB_Dt[0], p->DB_Dt[1], p->DB_Dt[2], dt_mhd);
+#endif
   p->B[0] += p->DB_Dt[0] * dt_mhd;
   p->B[1] += p->DB_Dt[1] * dt_mhd;
   p->B[2] += p->DB_Dt[2] * dt_mhd;
@@ -978,6 +984,12 @@ __attribute__((always_inline)) INLINE static void hydro_kick_extra(
   }
 
 #ifdef MHD_BUILTIN_ENABLED
+#ifdef MHD_BUILTIN_DEBUG_CHECKS
+  message("MHD_BUILTIN: (before kick) B_full[0]=%g, B_full[1]=%g, B_full[2]=%g, "
+          "DB_Dt[0]=%g, DB_Dt[1]=%g, DB_Dt[2]=%g, dt_mhd=%g",
+          p->B_full[0], p->B_full[1], p->B_full[2],
+          p->DB_Dt[0], p->DB_Dt[1], p->DB_Dt[2], dt_mhd);
+#endif
   /* Kick particles in momentum space (hydro acc.) */
   p->B_full[0] += p->DB_Dt[0] * dt_mhd;
   p->B_full[1] += p->DB_Dt[1] * dt_mhd;
