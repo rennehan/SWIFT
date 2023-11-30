@@ -33,11 +33,10 @@ v_L = 0.0  # Velocity left state
 v_R = 0.0  # Velocity right state
 P_L = 1.0  # Pressure left state
 P_R = 0.1  # Pressure right state
-Bx = 0.75 / sqrt(4.0 * pi)
-By_L = 1.0 / sqrt(4.0 * pi)  # Magnetic field left state
-By_R = -1.0 / sqrt(4.0 * pi) # Magnetic field right state
+Bx = 0.75
+By_L = 1.0  # Magnetic field left state
+By_R = -1.0 # Magnetic field right state
 fileName = "brioWuShock.hdf5"
-
 
 # ---------------------------------------------------
 boxSize = x_max - x_min

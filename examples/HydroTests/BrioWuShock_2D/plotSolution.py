@@ -70,7 +70,7 @@ u = sim["/PartType0/InternalEnergies"][:]
 S = sim["/PartType0/Entropies"][:]
 P = sim["/PartType0/Pressures"][:]
 rho = sim["/PartType0/Densities"][:]
-By = sim["/PartType0/MagneticFields"][:, 1] * np.sqrt(4.0 * np.pi)
+By = sim["/PartType0/MagneticFields"][:, 1]
 
 N = 1000  # Number of points
 x_min = -1.0

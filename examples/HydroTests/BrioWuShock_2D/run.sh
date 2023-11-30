@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Generate the initial conditions if they are not present.
-if [ ! -e glassPlane_128.hdf5 ]
+if [ ! -e glassPlane_256.hdf5 ]
 then
     echo "Fetching initial glass file for the Sod shock example..."
     ./getGlass.sh
@@ -16,4 +16,4 @@ fi
 # Run SWIFT
 ../../../swift --hydro --threads=1 brioWuShock.yml 2>&1 | tee output.log
 
-python3 plotSolution.py 1
+python3 plotSolution.py 10
