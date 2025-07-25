@@ -56,6 +56,8 @@
 #include "./hydro/REMIX/hydro_parameters.h"
 #elif defined(SPHENIX_SPH)
 #include "./hydro/SPHENIX/hydro_parameters.h"
+#elif defined(DENSITY_REACTIVE_SPH)
+#include "./hydro/DensityReactive/hydro_parameters.h"
 #elif defined(GASOLINE_SPH)
 #include "./hydro/Gasoline/hydro_parameters.h"
 #elif defined(ANARCHY_PU_SPH)

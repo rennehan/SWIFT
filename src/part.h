@@ -89,6 +89,10 @@ struct threadpool;
 #include "./hydro/SPHENIX/hydro_part.h"
 #define hydro_need_extra_init_loop 0
 #define EXTRA_HYDRO_LOOP
+#elif defined(DENSITY_REACTIVE_SPH)
+#include "./hydro/DensityReactive/hydro_part.h"
+#define hydro_need_extra_init_loop 0
+#define EXTRA_HYDRO_LOOP
 #elif defined(GASOLINE_SPH)
 #include "./hydro/Gasoline/hydro_part.h"
 #define hydro_need_extra_init_loop 0

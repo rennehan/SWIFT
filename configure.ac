@@ -2223,7 +2223,7 @@ fi
 # Hydro scheme.
 AC_ARG_WITH([hydro],
    [AS_HELP_STRING([--with-hydro=<scheme>],
-      [Hydro dynamics to use @<:@gadget2, minimal, pressure-entropy, pressure-energy, pressure-energy-monaghan, phantom, gizmo-mfv, gizmo-mfm, shadowswift, planetary, remix, sphenix, gasoline, anarchy-pu default: sphenix@:>@]
+      [Hydro dynamics to use @<:@gadget2, minimal, density-reactive pressure-entropy, pressure-energy, pressure-energy-monaghan, phantom, gizmo-mfv, gizmo-mfm, shadowswift, planetary, remix, sphenix, gasoline, anarchy-pu default: sphenix@:>@]
    )],
    [with_hydro="$withval"],
    [with_hydro="sphenix"]
@@ -2275,6 +2275,9 @@ case "$with_hydro" in
    ;;
    sphenix)
       AC_DEFINE([SPHENIX_SPH], [1], [SPHENIX SPH])
+   ;;
+   density-reactive)
+      AC_DEFINE([DENSITY_REACTIVE_SPH], [1], [Density-Reactive SPH])
    ;;
    gasoline)
       AC_DEFINE([GASOLINE_SPH], [1], [Gasoline SPH])
@@ -3271,6 +3274,9 @@ AM_CONDITIONAL([HAVEAGORAFEEDBACK], [test "$with_feedback" = "AGORA"])
 
 # check if using SPHENIX
 AM_CONDITIONAL([HAVE_SPHENIX], [test "$with_hydro" = "sphenix"])
+
+# check if using Density-Reactive SPH
+AM_CONDITIONAL([HAVE_DENSITY_REACTIVE], [test "$with_hydro" = "density-reactive"])
 
 # check if using GADGET2 SPH
 AM_CONDITIONAL([HAVE_GADGET2], [test "$with_hydro" = "gadget2"])

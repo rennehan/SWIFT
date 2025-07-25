@@ -55,6 +55,8 @@
 #error TODO
 #elif defined(ANARCHY_PU_SPH)
 #error TODO
+#elif defined(DENSITY_REACTIVE_SPH)
+#include "./hydro/DensityReactive/hydro_csds.h"
 #else
 #error "Invalid choice of SPH variant"
 #endif

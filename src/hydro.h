@@ -78,6 +78,10 @@
 #include "./hydro/SPHENIX/hydro.h"
 #include "./hydro/SPHENIX/hydro_iact.h"
 #define SPH_IMPLEMENTATION "SPHENIX (Borrow+ 2020)"
+#elif defined(DENSITY_REACTIVE_SPH)
+#include "./hydro/DensityReactive/hydro.h"
+#include "./hydro/DensityReactive/hydro_iact.h"
+#define SPH_IMPLEMENTATION "Density-Reactive (Rennehan 2025)"
 #elif defined(GASOLINE_SPH)
 #include "./hydro/Gasoline/hydro.h"
 #include "./hydro/Gasoline/hydro_iact.h"
